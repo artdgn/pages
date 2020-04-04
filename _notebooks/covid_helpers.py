@@ -16,11 +16,6 @@ class SourceData:
                 }
 
     @classmethod
-    def get_overview_template(cls):
-        with open(os.path.join(data_folder, 'overview.tpl')) as f:
-            return f.read()
-
-    @classmethod
     def get_covid_dataframe(cls, name):
         url = (
             'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/'
@@ -40,67 +35,6 @@ class SourceData:
                 LAST_DATE_I = i
                 break
         return LAST_DATE_I, dt_cols
-
-
-class OverviewData:
-    COL_REGION = 'Country/Region'
-    ABS_COLS = ['Cases', 'Deaths', 'Cases (+)', 'Deaths (+)']
-
-    dft_cases = SourceData.get_covid_dataframe('confirmed')
-    dft_deaths = SourceData.get_covid_dataframe('deaths')
-    dft_recovered = SourceData.get_covid_dataframe('recovered')
-    LAST_DATE_I, dt_cols = SourceData.get_dates(dft_cases)
-
-    dt_today = dt_cols[LAST_DATE_I]
-    dfc_cases = dft_cases.groupby(COL_REGION)[dt_today].sum()
-    dfc_deaths = dft_deaths.groupby(COL_REGION)[dt_today].sum()
-
-    PREV_LAG = 5
-    dt_lag = dt_cols[LAST_DATE_I - PREV_LAG]
-
-    @classmethod
-    def lagged_cases(cls, lag=PREV_LAG):
-        return cls.dft_cases.groupby(cls.COL_REGION)[cls.dt_cols[cls.LAST_DATE_I - lag]].sum()
-
-    @classmethod
-    def lagged_deaths(cls, lag=PREV_LAG):
-        return cls.dft_deaths.groupby(cls.COL_REGION)[cls.dt_cols[cls.LAST_DATE_I - lag]].sum()
-
-    @classmethod
-    def overview_table(cls):
-        df_table = (pd.DataFrame(dict(Cases=cls.dfc_cases,
-                                      Deaths=cls.dfc_deaths,
-                                      PCases=cls.lagged_cases(),
-                                      PDeaths=cls.lagged_deaths()))
-                    .sort_values(by=['Cases', 'Deaths'], ascending=[False, False])
-                    .reset_index())
-        df_table.rename(columns={'index': 'Country/Region'}, inplace=True)
-        for c in 'Cases, Deaths'.split(', '):
-            df_table[f'{c} (+)'] = (df_table[c] - df_table[f'P{c}']).clip(0)  # DATA BUG
-        df_table['Fatality Rate'] = (100 * df_table['Deaths'] / df_table['Cases']).round(1)
-        df_table['Continent'] = df_table['Country/Region'].map(SourceData.mappings['map.continent'])
-
-        # remove problematic
-        df_table = df_table[~df_table['Country/Region'].isin(['Cape Verde', 'Cruise Ship', 'Kosovo'])]
-        return df_table
-
-    @classmethod
-    def make_summary_dict(cls):
-        df_table = cls.overview_table()
-
-        metrics = cls.ABS_COLS
-        s_china = df_table[df_table['Country/Region'].eq('China')][metrics].sum().add_prefix('China ')
-        s_us = df_table[df_table['Country/Region'].eq('US')][metrics].sum().add_prefix('US ')
-        s_eu = df_table[df_table['Continent'].eq('Europe')][metrics].sum().add_prefix('EU ')
-        summary = {'updated': pd.to_datetime(cls.dt_today), 'since': pd.to_datetime(cls.dt_lag)}
-        summary = {**summary, **df_table[metrics].sum(), **s_china, **s_us, **s_eu}
-        return summary
-
-    @classmethod
-    def make_new_cases_arrays(cls, n_days=50):
-        dft_ct_cases = cls.dft_cases.groupby(cls.COL_REGION)[cls.dt_cols].sum()
-        dft_ct_new_cases = dft_ct_cases.diff(axis=1).fillna(0).astype(int)
-        return dft_ct_new_cases.loc[:, cls.dt_cols[cls.LAST_DATE_I - n_days]:cls.dt_cols[cls.LAST_DATE_I]]
 
 
 class WordPopulation:
@@ -172,15 +106,57 @@ class HostpitalBeds(WordPopulation):
         df_clean.to_csv(cls.csv_path, index=None)
 
 
-class OverviewDataExtras(OverviewData):
-    ABS_COLS_MAP = {'Cases': 'Cases.total',
-                    'Deaths': 'Deaths.total',
-                    'Cases (+)': 'Cases.new',
-                    'Deaths (+)': 'Deaths.new'}
-    ABS_COLS_RENAMED = list(ABS_COLS_MAP.values())
-    PER_100K_COLS = [f'{c}.per100k' for c in ABS_COLS_RENAMED]
-    CASES_COLS = ABS_COLS_RENAMED[::2] + PER_100K_COLS[::2]
+class OverviewData:
+    COL_REGION = 'Country/Region'
+    ABS_COLS = ['Cases.total', 'Deaths.total', 'Cases.new', 'Deaths.new']
+
+    PER_100K_COLS = [f'{c}.per100k' for c in ABS_COLS]
+    CASES_COLS = ABS_COLS[::2] + PER_100K_COLS[::2]
     EST_COLS = [f'{c}.est' for c in CASES_COLS]
+
+    dft_cases = SourceData.get_covid_dataframe('confirmed')
+    dft_deaths = SourceData.get_covid_dataframe('deaths')
+    dft_recovered = SourceData.get_covid_dataframe('recovered')
+    LAST_DATE_I, dt_cols = SourceData.get_dates(dft_cases)
+
+    dt_today = dt_cols[LAST_DATE_I]
+    dfc_cases = dft_cases.groupby(COL_REGION)[dt_today].sum()
+    dfc_deaths = dft_deaths.groupby(COL_REGION)[dt_today].sum()
+
+    PREV_LAG = 5
+    dt_lag = dt_cols[LAST_DATE_I - PREV_LAG]
+
+    @classmethod
+    def lagged_cases(cls, lag=PREV_LAG):
+        return cls.dft_cases.groupby(cls.COL_REGION)[cls.dt_cols[cls.LAST_DATE_I - lag]].sum()
+
+    @classmethod
+    def lagged_deaths(cls, lag=PREV_LAG):
+        return cls.dft_deaths.groupby(cls.COL_REGION)[cls.dt_cols[cls.LAST_DATE_I - lag]].sum()
+
+    @classmethod
+    def overview_table(cls):
+        df_table = (pd.DataFrame({'Cases.total': cls.dfc_cases,
+                                  'Deaths.total': cls.dfc_deaths,
+                                  'Cases.total.prev': cls.lagged_cases(),
+                                  'Deaths.total.prev': cls.lagged_deaths()})
+                    .sort_values(by=['Cases.total', 'Deaths.total'], ascending=[False, False])
+                    .reset_index())
+        df_table.rename(columns={'index': 'Country/Region'}, inplace=True)
+        for c in cls.ABS_COLS[:2]:
+            df_table[c.replace('total', 'new')] = (df_table[c] - df_table[f'{c}.prev']).clip(0)  # DATA BUG
+        df_table['Fatality Rate'] = (100 * df_table['Deaths.total'] / df_table['Cases.total']).round(1)
+        df_table['Continent'] = df_table['Country/Region'].map(SourceData.mappings['map.continent'])
+
+        # remove problematic
+        df_table = df_table[~df_table['Country/Region'].isin(['Cape Verde', 'Cruise Ship', 'Kosovo'])]
+        return df_table
+
+    @classmethod
+    def make_new_cases_arrays(cls, n_days=50):
+        dft_ct_cases = cls.dft_cases.groupby(cls.COL_REGION)[cls.dt_cols].sum()
+        dft_ct_new_cases = dft_ct_cases.diff(axis=1).fillna(0).astype(int)
+        return dft_ct_new_cases.loc[:, cls.dt_cols[cls.LAST_DATE_I - n_days]:cls.dt_cols[cls.LAST_DATE_I]]
 
     @classmethod
     def populations_df(cls):
@@ -207,8 +183,7 @@ class OverviewDataExtras(OverviewData):
     @classmethod
     def overview_table_with_per_100k(cls):
         df = (cls.overview_table()
-              .rename(columns=cls.ABS_COLS_MAP)
-              .drop(['PCases', 'PDeaths'], axis=1)
+              .drop(['Cases.total.prev', 'Deaths.total.prev'], axis=1)
               .set_index(cls.COL_REGION, drop=True)
               .sort_values('Cases.new', ascending=False))
         df['Fatality Rate'] /= 100
@@ -218,7 +193,7 @@ class OverviewDataExtras(OverviewData):
         df['population'] = df_pop['population']
         df.dropna(subset=['population'], inplace=True)
 
-        for col, per_100k_col in zip(cls.ABS_COLS_RENAMED, cls.PER_100K_COLS):
+        for col, per_100k_col in zip(cls.ABS_COLS, cls.PER_100K_COLS):
             df[per_100k_col] = df[col] * 1e5 / df['population']
 
         return df
@@ -304,7 +279,6 @@ class OverviewDataExtras(OverviewData):
                                         simulation_start_day=simulation_start_day,
                                         growth_rate=df['growth_rate'])
         return df
-
 
     @classmethod
     def _calculate_recovered_and_active_until_now(cls, df, recovery_lagged9_rate=0.07):
@@ -406,21 +380,3 @@ def pandas_console_options():
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1000)
-
-
-def overview_html():
-    template_text = SourceData.get_overview_template()
-
-    import numpy as np
-    import pandas as pd
-    from jinja2 import Template
-    from IPython.display import HTML
-
-    helper = OverviewData
-    template = Template(template_text)
-    html = template.render(
-        D=helper.make_summary_dict(),
-        table=helper.overview_table(),
-        newcases=helper.make_new_cases_arrays(),
-        np=np, pd=pd, enumerate=enumerate)
-    return HTML(f'<div>{html}</div>')

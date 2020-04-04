@@ -32,9 +32,9 @@
 # + papermill={"duration": 0.330834, "end_time": "2020-03-27T06:31:16.261108", "exception": false, "start_time": "2020-03-27T06:31:15.930274", "status": "completed"} tags=[]
 #hide
 import pandas as pd
-import overview_helpers
+import covid_helpers
 
-helper = overview_helpers.OverviewDataExtras
+helper = covid_helpers.OverviewData
 df = helper.filter_df(helper.table_with_projections())
 df.columns
 # -
