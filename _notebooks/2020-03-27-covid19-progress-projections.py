@@ -47,13 +47,15 @@ df.columns
 # - ICU capacities are from [Wikipedia](https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds) (OECD countries mostly) and [CCB capacities in Asia](https://www.researchgate.net/publication/338520008_Critical_Care_Bed_Capacity_in_Asian_Countries_and_Regions).
 # - ICU spare capacity is based on 70% normal occupancy rate ([66% in US](https://www.sccm.org/Blog/March-2020/United-States-Resource-Availability-for-COVID-19), [75% OECD](https://www.oecd-ilibrary.org/social-issues-migration-health/health-at-a-glance-2019_4dd50c09-en))
 # - Details of estimation and prediction calculations are in [Appendix](#appendix).
-# - Column definitions:
-#     - **Estimated ICU need per 100k population**: number of ICU beds estimated to be needed per 100k population by COVID-19 patents.
-#     - **Projected in 14 days**: projected ICU need per 100k population in 14 days.
-#     - **Projected in 30 days**: projected ICU need per 100k population in 30 days.
-#     - **ICU capacity per 100k**: number of ICU beds per 100k population.
-#     - **Estimated ICU Spare capacity per 100k**: estimated ICU capacity per 100k population based on assumed normal occupancy rate of 70% and number of ICU beds (only for countries with ICU beds data).
-#     - **Estimated daily case growth rate**: percentage daily change in total cases during last 5 days.
+#
+# - Column defitions:
+#     - <font size=2><b>Estimated ICU need per 100k population</b>: number of ICU beds estimated to be needed per 100k population by COVID-19 patents.</font>
+#     - <font size=2><b>Projected in 14 days</b>: projected ICU need per 100k population in 14 days.</font>
+#     - <font size=2><b>Projected in 30 days</b>: projected ICU need per 100k population in 30 days.</font>
+#     - <font size=2><b>ICU capacity per 100k</b>: number of ICU beds per 100k population.</font>
+#     - <font size=2><b>Estimated ICU Spare capacity per 100k</b>: estimated ICU capacity per 100k population based on assumed normal occupancy rate of 70% and number of ICU beds (only for countries with ICU beds data).</font>
+#     - <font size=2><b>Estimated daily case growth rate</b>: percentage daily change in total cases during last 5 days.</font>
+
 # > Tip: The <b><font color="b21e3e">red (need for ICU)</font></b>  and the <b><font color="3ab1d8">blue (ICU spare capacity)</font></b>  bars are on the same 0-10 scale, for easy visual comparison of columns.
 
 #hide_input
@@ -84,13 +86,13 @@ df_icu_bars.sort_values(rename_cols['needICU.per100k'], ascending=False)\
 # ## Affected population percentages in top 20 countries with most estimated new cases
 # - Sorted by number of estimated new cases during the last 5 days.
 # - Details of estimation and prediction calculations are in [Appendix](#appendix).
-# - Column definitions:
-#     - **Estimated <i>new</i> cases in last 5 days**: estimated new cases in last 5 days.
-#     - **Estimated <i>total</i> affected population percentage**: estimated percentage of total population already affected (infected, recovered, or dead).
-#     - **Projected in 14 days**: projected percentage of total affected population in 14 days.
-#     - **Projected in 30 days**: projected percentage of total affected population in 30 days.
-#     - **Reported fatality percentage**: reported total deaths divided by total cases.
-#     - **Estimated daily case growth rate**: percentage daily change in total cases during last 5 days.
+# - Column defitions:
+#     - <font size=2><b>Estimated <i>new</i> cases in last 5 days</b>: estimated new cases in last 5 days.</font>
+#     - <font size=2><b>Estimated <i>total</i> affected population percentage</b>: estimated percentage of total population already affected (infected, recovered, or dead).</font>
+#     - <font size=2><b>Projected in 14 days</b>: projected percentage of total affected population in 14 days.</font>
+#     - <font size=2><b>Projected in 30 days</b>: projected percentage of total affected population in 30 days.</font>
+#     - <font size=2><b>Reported fatality percentage</b>: reported total deaths divided by total cases.</font>
+#     - <font size=2><b>Estimated daily case growth rate</b>: percentage daily change in total cases during last 5 days</font>.
 #
 
 #hide_input
