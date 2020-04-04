@@ -27,7 +27,10 @@
 # - hide: false
 # -
 
-# > Note: This dashboard contains the results of a predictive model. The author has tried to make it as accurate as possible. But the COVID-19 situation is changing quickly, and these models inevitably include some level of speculation. 
+# > Note: this is beta version of a pending [PR to covid19-dashboards.com](https://github.com/github/covid19-dashboard/pull/249).
+#
+#
+# > Important: This dashboard contains the results of a predictive model. The author has tried to make it as accurate as possible. But the COVID-19 situation is changing quickly, and these models inevitably include some level of speculation. 
 
 # + papermill={"duration": 0.330834, "end_time": "2020-03-27T06:31:16.261108", "exception": false, "start_time": "2020-03-27T06:31:15.930274", "status": "completed"} tags=[]
 #hide
