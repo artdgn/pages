@@ -2,12 +2,12 @@
 #
 # This config file is meant for settings that affect your whole blog.
 #
-# If you need help with YAML syntax, here are some quick references for you: 
+# If you need help with YAML syntax, here are some quick references for you:
 # https://learn-the-web.algonquindesign.ca/topics/markdown-yaml-cheat-sheet/#yaml
 # https://learnxinyminutes.com/docs/yaml/
 
-title: fastpages
-description: An easy to use blogging platform with support for Jupyter Notebooks.
+title: https://artdgn.github.io/notebook-posts/
+#description: An easy to use blogging platform with support for Jupyter Notebooks.
 github_username: artdgn
 # you can comment the below line out if your repo name is not different than your baseurl
 github_repo: "notebook-posts"
