@@ -258,7 +258,7 @@ class OverviewData:
         return df
 
     @classmethod
-    def table_with_projections(cls, projection_days=(7, 14, 30, 60, 90), plot_countries=()):
+    def table_with_projections(cls, projection_days=(7, 14, 30, 60, 90), debug_countries=()):
         df = cls.table_with_icu_capacities()
 
         df['affected_ratio'] = df['Cases.total'] / df['population']
@@ -272,12 +272,13 @@ class OverviewData:
             past_active=past_active,
             projection_days=projection_days)
 
-        if len(plot_countries):
-            cls._plot_SIR_for_countries(plot_countries=plot_countries,
-                                        past_recovered=past_recovered,
-                                        past_active=past_active,
-                                        simulation_start_day=simulation_start_day,
-                                        growth_rate=df['growth_rate'])
+        if len(debug_countries):
+            debug_dfs = cls._SIR_timeseries_for_countries(debug_countries=debug_countries,
+                                                          past_recovered=past_recovered,
+                                                          past_active=past_active,
+                                                          simulation_start_day=simulation_start_day,
+                                                          growth_rate=df['growth_rate'])
+            return df, debug_dfs
         return df
 
     @classmethod
@@ -354,9 +355,10 @@ class OverviewData:
         return df, past_recovered, past_active
 
     @classmethod
-    def _plot_SIR_for_countries(cls, plot_countries, past_recovered,
-                                past_active, simulation_start_day, growth_rate):
-        for debug_country in plot_countries:
+    def _SIR_timeseries_for_countries(cls, debug_countries, past_recovered,
+                                      past_active, simulation_start_day, growth_rate):
+        dfs = []
+        for debug_country in debug_countries:
             debug = [{'day': day - simulation_start_day,
                       'Susceptible': (1 - a - r)[debug_country],
                       'Infected': a[debug_country],
@@ -368,7 +370,11 @@ class OverviewData:
                      f"Growth Rate: {growth_rate[debug_country]:.0%}. "
                      f"S/I/R init: {debug[0]['Susceptible']:.1%},"
                      f"{debug[0]['Infected']:.1%},{debug[0]['Removed']:.1%}")
-            pd.DataFrame(debug).set_index('day').plot(title=title)
+            df = pd.DataFrame(debug).set_index('day')
+            df['title'] = title
+            df['country'] = debug_country
+            dfs.append(df)
+        return dfs
 
     @classmethod
     def filter_df(cls, df):
