@@ -19,10 +19,11 @@
 # > Modeling current and future affected population percentage.
 #
 # - categories: [overview]
+# - comments: true
 # - author: <a href=https://github.com/artdgn/>artdgn</a>
-# - image: images/covid-affected-population.png
+# - image: images/affected-pop.png
 # - permalink: /covid-affected-population/
-# - toc: false
+# - toc: true
 # - hide: false
 # -
 
@@ -74,12 +75,61 @@ df_progress_bars.sort_values(rename_cols['Cases.new.est'], ascending=False)\
     .format('<b>{:,.0f}</b>', subset=list(rename_cols.values())[0])\
     .format('<b>{:.1%}</b>', subset=list(rename_cols.values())[1:])
 
-# # Appendix
+# <a id='examples'></a>
+#
+# ## Interactive plot of Model predictions
+#
+# For top 20 countries by estimated new cases.
+#
+# > Tip: Choose a country from the drop-down menu to see the calculations used in the tables above and the dynamics of the model.
+
+# +
+#hide
+sir_plot_countries = df.sort_values('Cases.new.est', ascending=False).head(20).index
+_, debug_dfs = helper.table_with_projections(debug_countries=sir_plot_countries)
+
+df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
+
+# +
+#hide_input
+import altair as alt
+
+alt.data_transformers.disable_max_rows()
+
+select_country = alt.selection_single(
+    name='Select',
+    fields=['country'],
+    init={'country': sir_plot_countries[0]},
+    bind=alt.binding_select(options=sorted(sir_plot_countries))
+)
+
+title = (alt.Chart(df_alt[['country', 'title']].drop_duplicates())
+              .mark_text(dy=-180, dx=0, size=16)
+              .encode(text='title:N')
+              .transform_filter(select_country))
+
+line_cols = ['Infected', 'Susceptible', 'Removed']
+lines = (alt.Chart(df_alt)
+       .mark_line()
+       .transform_fold(line_cols)
+        .encode(x='day:Q', 
+                y=alt.Y('value:Q', axis=alt.Axis(
+                    format='%', title='Percentage of Population')), 
+                color=alt.Color(
+                    'key:N', scale=alt.Scale(
+                        domain=line_cols, range=['red', 'blue', 'green'])))
+            .add_selection(select_country)
+            .transform_filter(select_country))
+((lines + title)
+ .configure_title(fontSize=20)
+ .configure_axis(labelFontSize=15, titleFontSize=18, grid=True))
+# -
+
+# ## Appendix
 # <a id='appendix'></a>
-# ## Methodology & Assumptions
 #
 # - Total case estimation calculated from deaths by:
-#     - Assuming that unbiased fatality rate is 1.5% (from heavily tested countries / the cruise ship data) and that it takes 8 days on average for a case to go from being confirmed positive (after incubation + testing lag) to death. This is the same figure used by ["Estimating The Infected Population From Deaths"](https://covid19dashboards.com/covid-infected/) in this repo.
+#     - Assuming that unbiased fatality rate is 1.5% (from heavily tested countries / the cruise ship data) and that it takes 8 days on average for a case to go from being confirmed positive (after incubation + testing lag) to death. This is the same figure used by ["Estimating The Infected Population From Deaths"](https://covid19dashboards.com/covid-infected/).
 #     - Testing bias: the actual lagged fatality rate is than divided by the 1.5% figure to estimate the testing bias in a country. The estimated testing bias then multiplies the reported case numbers to estimate the *true* case numbers (*=case numbers if testing coverage was as comprehensive as in the heavily tested countries*).
 #     - The testing bias calculation is a high source of uncertainty in all these estimations and projections. Better source of testing bias (or just *true case* numbers), should make everything more accurate.
 # - Projection is done using a simple [SIR model](https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SIR_model) with (see [examples](#examples)) combined with the approach in [Total Outstanding Cases](https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases):
@@ -90,14 +140,3 @@ df_progress_bars.sort_values(rename_cols['Cases.new.est'], ascending=False)\
 #     - This is both pessimistic - because real ICU rate may in reality be lower, due to testing biases, and especially in "younger" populations), and optimistic - because active cases which are on ICU take longer (so need the ICUs for longer).
 #     - ICU capacities are from [Wikipedia](https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds) (OECD countries mostly) and [CCB capacities in Asia](https://www.researchgate.net/publication/338520008_Critical_Care_Bed_Capacity_in_Asian_Countries_and_Regions).
 #     - ICU spare capacity is based on 70% normal occupancy rate ([66% in US](https://www.sccm.org/Blog/March-2020/United-States-Resource-Availability-for-COVID-19), [75% OECD](https://www.oecd-ilibrary.org/social-issues-migration-health/health-at-a-glance-2019_4dd50c09-en))
-
-# <a id='examples'></a>
-#
-# **Examples of modeling plots**
-#
-# For the 5 countries with highest estimated number of new cases.
-# > Note: The purpose of the below plots is to demonstrate the actual calculations used in the tables above and the dynamics of the model.
-
-#hide_input
-sir_plot_countries = df.sort_values('Cases.new.est', ascending=False).head(5).index
-helper.table_with_projections(plot_countries=sir_plot_countries);
