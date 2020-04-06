@@ -176,7 +176,8 @@ bands = functools.reduce(alt.Chart.__add__,
  .add_selection(select_country)
  .transform_filter(select_country)
  .configure_title(fontSize=20)
- .configure_axis(labelFontSize=15, titleFontSize=18, grid=True))
+ .configure_axis(labelFontSize=15, titleFontSize=18, grid=True)
+ .properties(width=550, height=340))
 # -
 
 
