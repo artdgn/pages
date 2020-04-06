@@ -126,6 +126,23 @@ class OverviewData:
     PREV_LAG = 5
     dt_lag = dt_cols[LAST_DATE_I - PREV_LAG]
 
+    # modeling constants
+    ## testing bias
+    death_lag = 8
+    probable_unbiased_mortality_rate = 0.015  # Diamond Princess / Kuwait / South Korea
+    ## recovery estimation
+    recovery_lagged9_rate = 0.07
+    ## sir model
+    rec_rate_simple = 0.05
+    ## icu need estimation
+    ICU_ratio = 0.06
+    ## ICU spare capacity
+    # occupancy 66% for us:
+    #   https://www.sccm.org/Blog/March-2020/United-States-Resource-Availability-for-COVID-19
+    # occupancy average 75% for OECD:
+    #   https://www.oecd-ilibrary.org/social-issues-migration-health/health-at-a-glance-2019_4dd50c09-en
+    icu_spare_capacity_ratio = 0.3
+
     @classmethod
     def lagged_cases(cls, lag=PREV_LAG):
         return cls.dft_cases.groupby(cls.COL_REGION)[cls.dt_cols[cls.LAST_DATE_I - lag]].sum()
@@ -199,7 +216,7 @@ class OverviewData:
         return df
 
     @classmethod
-    def table_with_estimated_cases(cls, death_lag=8):
+    def table_with_estimated_cases(cls):
         """
         Assumptions:
             - unbiased (if everyone is tested) mortality rate is
@@ -210,9 +227,9 @@ class OverviewData:
                 didn't change significantly during the last 8 days.
             - Recent new cases can be adjusted using the same testing_ratio bias.
         """
-        probable_unbiased_mortality_rate = 0.015  # Diamond Princess / Kuwait / South Korea
-        lagged_mortality_rate = (cls.dfc_deaths + 1) / (cls.lagged_cases(death_lag) + 1)
-        testing_bias = lagged_mortality_rate / probable_unbiased_mortality_rate
+
+        lagged_mortality_rate = (cls.dfc_deaths + 1) / (cls.lagged_cases(cls.death_lag) + 1)
+        testing_bias = lagged_mortality_rate / cls.probable_unbiased_mortality_rate
         testing_bias[testing_bias < 1] = 1
 
         df = cls.overview_table_with_per_100k()
@@ -231,16 +248,21 @@ class OverviewData:
 
         diffs = cls.dft_cases.groupby(cls.COL_REGION).sum().diff(axis=1)[recent_dates]
 
-        # dates with larger number of cases have higher sampling accuracy
-        # so their measurement deserve more confidence
-        sampling_weights = (cases.T / cases.sum(axis=1).T).T
+        cases, diffs = cases.T, diffs.T  # broadcasting works correctly this way
 
         # daily rate is new / (total - new)
         daily_growth_rates = cases / (cases - diffs)
 
-        weighted_growth_rate = (daily_growth_rates * sampling_weights).sum(axis=1)
+        # dates with larger number of cases have higher sampling accuracy
+        # so their measurement deserve more confidence
+        sampling_weights = (cases / cases.sum(0))
 
-        return weighted_growth_rate
+        weighted_mean = (daily_growth_rates * sampling_weights).sum(0)
+
+        weighted_std = ((daily_growth_rates - weighted_mean).pow(2) *
+                        sampling_weights).sum(0).pow(0.5)
+
+        return weighted_mean, weighted_std
 
     @classmethod
     def table_with_icu_capacities(cls):
@@ -250,11 +272,7 @@ class OverviewData:
 
         df['icu_capacity_per100k'] = df_beds['icu_per_100k']
 
-        # occupancy 66% for us:
-        #   https://www.sccm.org/Blog/March-2020/United-States-Resource-Availability-for-COVID-19
-        # occupancy average 75% for OECD:
-        #   https://www.oecd-ilibrary.org/social-issues-migration-health/health-at-a-glance-2019_4dd50c09-en
-        df['icu_spare_capacity_per100k'] = df['icu_capacity_per100k'] * 0.3
+        df['icu_spare_capacity_per100k'] = df['icu_capacity_per100k'] * cls.icu_spare_capacity_ratio
         return df
 
     @classmethod
@@ -263,26 +281,26 @@ class OverviewData:
 
         df['affected_ratio'] = df['Cases.total'] / df['population']
 
-        past_recovered, past_active, simulation_start_day = (
-            cls._calculate_recovered_and_active_until_now(df))
+        past_recovered, past_active = cls._calculate_recovered_and_active_until_now(df)
 
-        df, past_recovered, past_active = cls._run_SIR_model_forward(
+        df, recovered, active = cls._run_model_forward(
             df,
-            past_recovered=past_recovered,
-            past_active=past_active,
+            past_recovered=past_recovered.copy(),
+            past_active=past_active.copy(),
             projection_days=projection_days)
 
         if len(debug_countries):
-            debug_dfs = cls._SIR_timeseries_for_countries(debug_countries=debug_countries,
-                                                          past_recovered=past_recovered,
-                                                          past_active=past_active,
-                                                          simulation_start_day=simulation_start_day,
-                                                          growth_rate=df['growth_rate'])
+            debug_dfs = cls._SIR_timeseries_for_countries(
+                debug_countries=debug_countries,
+                past_recovered=recovered,
+                past_active=active,
+                simulation_start_day=len(past_recovered) - 1,
+                growth_rate=df['growth_rate'])
             return df, debug_dfs
         return df
 
     @classmethod
-    def _calculate_recovered_and_active_until_now(cls, df, recovery_lagged9_rate=0.07):
+    def _calculate_recovered_and_active_until_now(cls, df):
         # estimated daily cases ratio of population
         lagged_cases_ratios = (cls.dft_cases.groupby(cls.COL_REGION).sum()[cls.dt_cols].T *
                                df['testing_bias'].T / df['population'].T).T
@@ -293,66 +311,73 @@ class OverviewData:
         # https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases
         recs, actives = [], []
         zeros_series = lagged_cases_ratios[cls.dt_cols[0]] * 0  # this is to have consistent types
-        day = 0
         for day in range(len(cls.dt_cols)):
             prev_rec = recs[day - 1] if day > 0 else zeros_series
             tot_lagged_9 = lagged_cases_ratios[cls.dt_cols[day - 9]] if day >= 8 else zeros_series
-            recs.append(prev_rec + (tot_lagged_9 - prev_rec) * recovery_lagged9_rate)
+            recs.append(prev_rec + (tot_lagged_9 - prev_rec) * cls.recovery_lagged9_rate)
             actives.append(lagged_cases_ratios[cls.dt_cols[day]] - recs[day])
 
-        return recs, actives, day
+        return recs, actives
 
     @classmethod
-    def _run_SIR_model_forward(cls,
-                               df,
-                               past_recovered,
-                               past_active,
-                               projection_days,
-                               recovery_lagged9_rate=0.07):
+    def _run_model_forward(cls,
+                           df,
+                           past_recovered,
+                           past_active,
+                           projection_days,
+                           ):
 
-        cur_growth_rate = cls.smoothed_growth_rates(n_days=cls.PREV_LAG)
+        cur_growth_rate, growsth_rate_std = cls.smoothed_growth_rates(n_days=cls.PREV_LAG)
         df['growth_rate'] = (cur_growth_rate - 1)
+        df['growth_rate_std'] = growsth_rate_std
 
-        cur_recovery_rate = (past_recovered[-1] - past_recovered[-2]) / past_active[-1]
-        infect_rate = cur_growth_rate - 1 + cur_recovery_rate
+        rec, act = cls.run_sir_mode(past_recovered,
+                                    past_active,
+                                    cur_growth_rate,
+                                    n_days=projection_days[-1])
 
-        ICU_ratio = 0.06
-        rec_rate_simple = 0.05
+        day_one = len(past_recovered)
+        for day in [1] + list(projection_days):
+            ind = day_one + day - 1
+            suffix = f'.+{day}d' if day > 1 else ''
+            df[f'needICU.per100k{suffix}'] = act[ind] * df['population'] * cls.ICU_ratio / 1e5
+            df[f'affected_ratio.est{suffix}'] = rec[ind] + act[ind]
+
+        return df, rec, act
+
+    @classmethod
+    def run_sir_mode(cls, past_rec, past_act, growth, n_days):
+
+        rec, act = past_rec.copy(), past_act.copy()
+
+        cur_recovery_rate = (rec[-1] - rec[-2]) / act[-1]
+
+        infect_rate = growth - 1 + cur_recovery_rate
 
         # simulate
-        df['peak_icu_neek_per100k'] = 0
-        for day in range(1, projection_days[-1] + 1):
+        for i in range(n_days):
             # calculate susceptible
-            sus = 1 - past_recovered[-1] - past_active[-1]
+            sus = 1 - rec[-1] - act[-1]
 
             # calculate new recovered
-            actives_lagged_9 = past_active[-9]
-            delta_rec = actives_lagged_9 * recovery_lagged9_rate
-            delta_rec_simple = past_active[-1] * rec_rate_simple
+            actives_lagged_9 = act[-9]
+            delta_rec = actives_lagged_9 * cls.recovery_lagged9_rate
+            delta_rec_simple = act[-1] * cls.rec_rate_simple
             # limit recovery rate to simple SIR model where
             # lagged rate estimation becomes too high (on the downward slopes)
             delta_rec[delta_rec > delta_rec_simple] = delta_rec_simple[delta_rec > delta_rec_simple]
-            new_recovered = past_recovered[-1] + delta_rec
+            new_recovered = rec[-1] + delta_rec
 
             # calculate new active
-            delta_infect = past_active[-1] * sus * infect_rate
-            new_active = past_active[-1] + delta_infect - delta_rec
+            delta_infect = act[-1] * sus * infect_rate
+            new_active = act[-1] + delta_infect - delta_rec
             new_active[new_active < 0] = 0
 
             # update
-            past_recovered.append(new_recovered)
-            past_active.append(new_active)
+            rec.append(new_recovered)
+            act.append(new_active)
 
-            icu_need = past_active[-1] * df['population'] * ICU_ratio / 1e5
-
-            df['peak_icu_neek_per100k'] = pd.concat([df['peak_icu_neek_per100k'],
-                                                     icu_need], axis=1).max(axis=1)
-            if day == 1 or day in projection_days:
-                suffix = f'.+{day}d' if day > 1 else ''
-                df[f'needICU.per100k{suffix}'] = icu_need
-                df[f'affected_ratio.est{suffix}'] = 1 - sus
-
-        return df, past_recovered, past_active
+        return rec, act
 
     @classmethod
     def _SIR_timeseries_for_countries(cls, debug_countries, past_recovered,
