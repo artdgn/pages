@@ -153,19 +153,28 @@ title = (alt.Chart(df_alt[['country', 'title']].drop_duplicates())
               .encode(text='title:N')
               .transform_filter(select_country))
 
+base = alt.Chart(df_alt).encode(x='day:Q')
+
 line_cols = ['Infected', 'Susceptible', 'Removed']
-lines = (alt.Chart(df_alt)
-       .mark_line()
+colors = ['red', 'blue', 'green']
+lines = (base.mark_line()
        .transform_fold(line_cols)
-        .encode(x='day:Q',
-                y=alt.Y('value:Q', axis=alt.Axis(
-                    format='%', title='Percentage of Population')),
-                color=alt.Color(
-                    'key:N', scale=alt.Scale(
-                        domain=line_cols, range=['red', 'blue', 'green'])))
-            .add_selection(select_country)
-            .transform_filter(select_country))
-((lines + title)
+       .encode(x='day:Q',
+                y=alt.Y('value:Q', 
+                        axis=alt.Axis(format='%', title='Percentage of Population')),
+                color=alt.Color('key:N', 
+                                scale=alt.Scale(domain=line_cols, range=colors))))
+
+import functools
+bands = functools.reduce(alt.Chart.__add__, 
+                         [base.mark_area(opacity=0.1, color=color)
+                          .encode(y=f'{col}\.max:Q',y2=f'{col}\.min:Q') 
+                          for col, color in zip(line_cols, colors)])
+
+
+((lines + bands + title)
+ .add_selection(select_country)
+ .transform_filter(select_country)
  .configure_title(fontSize=20)
  .configure_axis(labelFontSize=15, titleFontSize=18, grid=True))
 # -
@@ -229,7 +238,8 @@ df.sort_values('needICU.per100k.+14d', ascending=False)\
 #     - The testing bias calculation is a high source of uncertainty in all these estimations and projections. Better source of testing bias (or just *true case* numbers), should make everything more accurate.
 # - Projection is done using a simple [SIR model](https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SIR_model) with (see [examples](#examples)) combined with the approach in [Total Outstanding Cases](https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases):
 #     - Growth rate calculated over the 5 past days. This is pessimistic - because it includes the testing rate growth rate as well, and is slow to react to both improvements in test coverage and "flattening" due to social isolation.
-#     - Recovery probability being 1/20 (for 20 days to recover) where the rate estimated from [Total Outstanding Cases](https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases) is too high (on down-slopes).
+#     - Confidence bounds are calculated by from the weighted STD of the growth rate over the last 5 days. Model predictions are calculated for growth rates within 1 STD of the weighted mean. The maximum and minimum values for each day are used as confidence bands.
+#     - Recovery probability being 1/20 (for 20 days to recover) where the rate estimated from [Total Outstanding Cases](https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases) is too high (on down-slopes).    
 # - ICU need is calculated as being [6% of active cases](https://medium.com/@joschabach/flattening-the-curve-is-a-deadly-delusion-eea324fe9727) where:
 #     - Active cases are taken from the SIR model.
 #     - This is both pessimistic - because real ICU rate may in reality be lower, due to testing biases, and especially in "younger" populations), and optimistic - because active cases which are on ICU take longer (so need the ICUs for longer).

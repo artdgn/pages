@@ -2,6 +2,7 @@ import os
 from urllib import request
 
 import pandas as pd
+import numpy as np
 
 data_folder = (os.path.join(os.path.dirname(__file__), 'data_files')
                if '__file__' in locals() else 'data_files')
@@ -281,19 +282,18 @@ class OverviewData:
 
         df['affected_ratio'] = df['Cases.total'] / df['population']
 
-        past_recovered, past_active = cls._calculate_recovered_and_active_until_now(df)
+        past_active, past_recovered = cls._calculate_recovered_and_active_until_now(df)
 
-        df, recovered, active = cls._run_model_forward(
+        df, traces = cls._run_model_forward(
             df,
-            past_recovered=past_recovered.copy(),
             past_active=past_active.copy(),
+            past_recovered=past_recovered.copy(),
             projection_days=projection_days)
 
         if len(debug_countries):
             debug_dfs = cls._SIR_timeseries_for_countries(
                 debug_countries=debug_countries,
-                past_recovered=recovered,
-                past_active=active,
+                traces=traces,
                 simulation_start_day=len(past_recovered) - 1,
                 growth_rate=df['growth_rate'])
             return df, debug_dfs
@@ -309,7 +309,7 @@ class OverviewData:
 
         # run through history and estimate recovered and active using:
         # https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases
-        recs, actives = [], []
+        actives, recs = [], []
         zeros_series = lagged_cases_ratios[cls.dt_cols[0]] * 0  # this is to have consistent types
         for day in range(len(cls.dt_cols)):
             prev_rec = recs[day - 1] if day > 0 else zeros_series
@@ -317,13 +317,13 @@ class OverviewData:
             recs.append(prev_rec + (tot_lagged_9 - prev_rec) * cls.recovery_lagged9_rate)
             actives.append(lagged_cases_ratios[cls.dt_cols[day]] - recs[day])
 
-        return recs, actives
+        return actives, recs
 
     @classmethod
     def _run_model_forward(cls,
                            df,
-                           past_recovered,
                            past_active,
+                           past_recovered,
                            projection_days,
                            ):
 
@@ -331,19 +331,55 @@ class OverviewData:
         df['growth_rate'] = (cur_growth_rate - 1)
         df['growth_rate_std'] = growsth_rate_std
 
-        rec, act = cls.run_sir_mode(past_recovered,
-                                    past_active,
-                                    cur_growth_rate,
-                                    n_days=projection_days[-1])
+        sus, act, rec = cls.run_sir_mode(
+            past_recovered, past_active, cur_growth_rate, n_days=projection_days[-1])
+
+        # sample more growth rates
+        sus_lists = [[s] for s in sus]
+        act_lists = [[a] for a in act]
+        rec_lists = [[r] for r in rec]
+
+        for ratio in np.linspace(-1, 1, 10):
+            pert_growth = cur_growth_rate + ratio * growsth_rate_std
+            pert_growth[pert_growth < 0] = 0
+            sus_other, act_other, rec_other = cls.run_sir_mode(
+                past_recovered, past_active, pert_growth, n_days=projection_days[-1])
+            for s_list, s in zip(sus_lists, sus_other):
+                s_list.append(s)
+            for a_list, a in zip(act_lists, act_other):
+                a_list.append(a)
+            for r_list, r in zip(rec_lists, rec_other):
+                r_list.append(r)
+
+        def list_to_max_min(l):
+            concated = [pd.concat(sub_l, axis=1) for sub_l in l]
+            max_list, min_list = zip(*[(d.max(1), d.min(1)) for d in concated])
+            return max_list, min_list
+
+        sus_max, sus_min = list_to_max_min(sus_lists)
+        act_max, act_min = list_to_max_min(act_lists)
+        rec_max, rec_min = list_to_max_min(rec_lists)
 
         day_one = len(past_recovered)
         for day in [1] + list(projection_days):
             ind = day_one + day - 1
             suffix = f'.+{day}d' if day > 1 else ''
-            df[f'needICU.per100k{suffix}'] = act[ind] * df['population'] * cls.ICU_ratio / 1e5
-            df[f'affected_ratio.est{suffix}'] = rec[ind] + act[ind]
+            icu_max = df['population'] * cls.ICU_ratio / 1e5
+            df[f'needICU.per100k{suffix}'] = act[ind] * icu_max
+            df[f'needICU.per100k{suffix}.max'] = act_max[ind] * icu_max
+            df[f'needICU.per100k{suffix}.min'] = act_min[ind] * icu_max
 
-        return df, rec, act
+            df[f'affected_ratio.est{suffix}'] = 1 - sus[ind]
+            df[f'affected_ratio.est{suffix}.max'] = 1 - sus_min[ind]
+            df[f'affected_ratio.est{suffix}.min'] = 1 - sus_max[ind]
+
+        traces = {
+            'sus_center': sus, 'sus_max': sus_max, 'sus_min': sus_min,
+            'act_center': act, 'act_max': act_max, 'act_min': act_min,
+            'rec_center': rec, 'rec_max': rec_max, 'rec_min': rec_min,
+        }
+
+        return df, traces
 
     @classmethod
     def run_sir_mode(cls, past_rec, past_act, growth, n_days):
@@ -377,18 +413,27 @@ class OverviewData:
             rec.append(new_recovered)
             act.append(new_active)
 
-        return rec, act
+        sus = [1 - r - a for r, a in zip(rec, act)]
+
+        return sus, act, rec
 
     @classmethod
-    def _SIR_timeseries_for_countries(cls, debug_countries, past_recovered,
-                                      past_active, simulation_start_day, growth_rate):
+    def _SIR_timeseries_for_countries(cls, debug_countries, traces,
+                                      simulation_start_day, growth_rate):
         dfs = []
         for debug_country in debug_countries:
             debug = [{'day': day - simulation_start_day,
-                      'Susceptible': (1 - a - r)[debug_country],
-                      'Infected': a[debug_country],
-                      'Removed': r[debug_country]}
-                     for day, (r, a) in enumerate(zip(past_recovered, past_active))
+                      'Susceptible': traces['sus_center'][day][debug_country],
+                      'Susceptible.max': traces['sus_max'][day][debug_country],
+                      'Susceptible.min': traces['sus_min'][day][debug_country],
+                      'Infected': traces['act_center'][day][debug_country],
+                      'Infected.max': traces['act_max'][day][debug_country],
+                      'Infected.min': traces['act_min'][day][debug_country],
+                      'Removed': traces['rec_center'][day][debug_country],
+                      'Removed.max': traces['rec_max'][day][debug_country],
+                      'Removed.min': traces['rec_min'][day][debug_country],
+                      }
+                     for day in range(len(traces['rec_center']))
                      if day > simulation_start_day]
 
             title = (f"{debug_country}: "
