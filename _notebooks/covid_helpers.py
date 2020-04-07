@@ -1,8 +1,8 @@
 import os
 from urllib import request
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 data_folder = (os.path.join(os.path.dirname(__file__), 'data_files')
                if '__file__' in locals() else 'data_files')
@@ -368,10 +368,12 @@ class OverviewData:
             df[f'needICU.per100k{suffix}'] = act[ind] * icu_max
             df[f'needICU.per100k{suffix}.max'] = act_max[ind] * icu_max
             df[f'needICU.per100k{suffix}.min'] = act_min[ind] * icu_max
+            df[f'needICU.per100k{suffix}.err'] = (act_max[ind] - act_min[ind]) * icu_max / 2
 
             df[f'affected_ratio.est{suffix}'] = 1 - sus[ind]
             df[f'affected_ratio.est{suffix}.max'] = 1 - sus_min[ind]
             df[f'affected_ratio.est{suffix}.min'] = 1 - sus_max[ind]
+            df[f'affected_ratio.est{suffix}.err'] = (sus_max[ind] - sus_min[ind]) / 2
 
         traces = {
             'sus_center': sus, 'sus_max': sus_max, 'sus_min': sus_min,
@@ -456,3 +458,70 @@ def pandas_console_options():
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1000)
+
+
+def altair_sir_plot(df, default_country):
+    import altair as alt
+
+    alt.data_transformers.disable_max_rows()
+
+    select_country = alt.selection_single(
+        name='Select',
+        fields=['country'],
+        init={'country': default_country},
+        bind=alt.binding_select(options=sorted(df['country'].unique()))
+    )
+
+    title = (alt.Chart(df[['country', 'title']].drop_duplicates())
+             .mark_text(dy=-180, dx=0, size=16)
+             .encode(text='title:N')
+             .transform_filter(select_country))
+
+    base = alt.Chart(df).encode(x='day:Q')
+
+    line_cols = ['Infected', 'Susceptible', 'Removed']
+    colors = ['red', 'blue', 'green']
+    lines = (base.mark_line()
+             .transform_fold(line_cols)
+             .encode(x='day:Q',
+                     y=alt.Y('value:Q',
+                             axis=alt.Axis(format='%', title='Percentage of Population')),
+                     color=alt.Color('key:N',
+                                     scale=alt.Scale(domain=line_cols, range=colors))))
+
+    import functools
+    bands = functools.reduce(alt.Chart.__add__,
+                             [base.mark_area(opacity=0.1, color=color)
+                             .encode(y=f'{col}\.max:Q', y2=f'{col}\.min:Q')
+                              for col, color in zip(line_cols, colors)])
+
+    return ((lines + bands + title)
+            .add_selection(select_country)
+            .transform_filter(select_country)
+            .configure_title(fontSize=20)
+            .configure_axis(labelFontSize=15, titleFontSize=18, grid=True)
+            .properties(width=550, height=340))
+
+
+class PandasStyling:
+    @staticmethod
+    def add_bar(s_t, s_v, color):
+        s_v = s_v.copy()
+        s_v[s_v > 1] = 1
+        s_v[s_v < 0] = 0
+        return [f'background: linear-gradient(90deg, {color} {v:.0%}, transparent {v:.0%})'
+                for t, v in zip(s_t, s_v)]
+
+    @staticmethod
+    def with_errs_float(df, val_col, err_col):
+        s = df.apply(lambda r: f"<b>{r[val_col]:.1f}</b>  \
+            ± <font size=1><i>{r[err_col]:.1f}</i></font>", axis=1)
+        s[df[err_col] > df[val_col]] = '<font size=1><i>noisy data</i></font>'
+        return s
+
+    @staticmethod
+    def with_errs_ratio(df, val_col, err_col):
+        s = df.apply(lambda r: f"<b>{r[val_col]:.1%}</b>  \
+            ± <font size=1><i>{r[err_col]:.1%}</i></font>", axis=1)
+        s[df[err_col] > df[val_col]] = '<font size=1><i>noisy data</i></font>'
+        return s
