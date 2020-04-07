@@ -35,6 +35,7 @@ import pandas as pd
 import covid_helpers
 
 helper = covid_helpers.OverviewData
+stylers = covid_helpers.PandasStyling
 df = helper.filter_df(helper.table_with_projections())
 df.columns
 # -
@@ -43,37 +44,48 @@ df.columns
 #
 # > Countries sorted by number of new cases in last 5 days
 #
+# - Sorted by number of estimated new cases during the last 5 days.
 # - Details of estimation and prediction calculations are in [Appendix](#appendix).
-
 # - Column definitions:
-#     - <font size=2><b>Estimated <i>new</i> cases in last 5 days</b>: estimated new cases in last 5 days.</font>
+#     - <font size=2><b>Estimated <i>new</i> cases in last 5 days</b>: self explanatory.</font>
 #     - <font size=2><b>Estimated <i>total</i> affected population percentage</b>: estimated percentage of total population already affected (infected, recovered, or dead).</font>
-#     - <font size=2><b>Projected in 14 days</b>: projected percentage of total affected population in 14 days.</font>
-#     - <font size=2><b>Projected in 30 days</b>: projected percentage of total affected population in 30 days.</font>
-#     - <font size=2><b>Reported fatality percentage</b>: reported total deaths divided by total cases.</font>
 #     - <font size=2><b>Estimated daily case growth rate</b>: percentage daily change in total cases during last 5 days</font>.
+#     - <font size=2><b>Projected total affected percentage in 14 days</b>: of population.</font>
+#     - <font size=2><b>Projected total affected percentage in 30 days</b>: of population.</font>
+#     - <font size=2><b>Reported fatality percentage</b>: reported total deaths divided by total cases.</font>
 
+# +
 #hide_input
-rename_cols = {'Cases.new.est': 'Estimated <br> <i>new</i> cases <br> in last 5 days', 
-               'affected_ratio.est': 'Estimated <br> <i>total</i> affected <br> population <br> percentage',
-               'affected_ratio.est.+14d': 'Projected <br> In 14 days',
-               'affected_ratio.est.+30d': 'Projected <br> In 30 days',
-               'Fatality Rate': 'Reported <br> fatality <br> percentage',
-               'growth_rate': 'Estimated <br> daily case <br> growth rate',
-              }
-progress_cols = list(rename_cols.values())[:4]
-df_progress_bars = df.rename(rename_cols, axis=1)
-df_progress_bars.sort_values(rename_cols['Cases.new.est'], ascending=False)\
-[rename_cols.values()].style\
-    .bar(subset=progress_cols[0], color='#b57b17')\
-    .bar(subset=progress_cols[1], color='#5dad64', vmin=0, vmax=1.0)\
-    .bar(subset=progress_cols[2], color='#719974', vmin=0, vmax=1.0)\
-    .bar(subset=progress_cols[3], color='#a1afa3', vmin=0, vmax=1.0)\
-    .bar(subset=[rename_cols['Fatality Rate']], color='#420412', vmin=0, vmax=0.1)\
-    .applymap(lambda _: 'color: red', subset=[rename_cols['Fatality Rate']])\
-    .bar(subset=[rename_cols['growth_rate']], color='#d65f5f', vmin=0, vmax=0.33)\
-    .format('<b>{:,.0f}</b>', subset=list(rename_cols.values())[0])\
-    .format('<b>{:.1%}</b>', subset=list(rename_cols.values())[1:])
+df_data = df.sort_values('Cases.new.est', ascending=False)
+df_pretty = df_data.copy()
+df_pretty['affected_ratio.est.+14d'] = stylers.with_errs_ratio(
+    df_pretty, 'affected_ratio.est.+14d', 'affected_ratio.est.+14d.err')
+df_pretty['affected_ratio.est.+30d'] = stylers.with_errs_ratio(
+    df_pretty, 'affected_ratio.est.+30d', 'affected_ratio.est.+30d.err')
+df_pretty['growth_rate'] = stylers.with_errs_ratio(df_pretty, 'growth_rate', 'growth_rate_std')
+
+cols = {'Cases.new.est': 'Estimated<br><i>new</i> cases<br>in last<br>5 days',
+       'affected_ratio.est': 'Estimated <br><i>total</i><br>affected<br>population<br>percentage',
+       'growth_rate': 'Estimated <br> daily case <br> growth rate',
+       'affected_ratio.est.+14d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 14 days',
+       'affected_ratio.est.+30d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 30 days',
+       'Fatality Rate': 'Reported <br>fatality <br> percentage',
+      }
+
+df_pretty[cols.keys()].rename(cols, axis=1).style\
+    .apply(stylers.add_bar, color='#719974',
+           s_v=df_data['affected_ratio.est.+14d'], subset=cols['affected_ratio.est.+14d'])\
+    .apply(stylers.add_bar, color='#a1afa3',
+           s_v=df_data['affected_ratio.est.+30d'], subset=cols['affected_ratio.est.+30d'])\
+    .apply(stylers.add_bar, color='#f49d5a',
+           s_v=df_data['growth_rate']/0.33, subset=cols['growth_rate'])\
+    .bar(subset=cols['Cases.new.est'], color='#b57b17')\
+    .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)\
+    .bar(subset=cols['Fatality Rate'], color='#420412', vmin=0, vmax=0.1)\
+    .applymap(lambda _: 'color: red', subset=cols['Fatality Rate'])\
+    .format('<b>{:,.0f}</b>', subset=cols['Cases.new.est'])\
+    .format('<b>{:.1%}</b>', subset=[cols['Fatality Rate'], cols['affected_ratio.est']])
+# -
 
 # <a id='examples'></a>
 #
@@ -84,55 +96,12 @@ df_progress_bars.sort_values(rename_cols['Cases.new.est'], ascending=False)\
 # > Tip: Choose a country from the drop-down menu to see the calculations used in the tables above and the dynamics of the model.
 
 # +
-#hide
+#hide_input
 sir_plot_countries = df.sort_values('Cases.new.est', ascending=False).head(20).index
 _, debug_dfs = helper.table_with_projections(debug_countries=sir_plot_countries)
 
 df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
-
-# +
-#hide_input
-import altair as alt
-
-alt.data_transformers.disable_max_rows()
-
-select_country = alt.selection_single(
-    name='Select',
-    fields=['country'],
-    init={'country': sir_plot_countries[0]},
-    bind=alt.binding_select(options=sorted(sir_plot_countries))
-)
-
-title = (alt.Chart(df_alt[['country', 'title']].drop_duplicates())
-              .mark_text(dy=-180, dx=0, size=16)
-              .encode(text='title:N')
-              .transform_filter(select_country))
-
-base = alt.Chart(df_alt).encode(x='day:Q')
-
-line_cols = ['Infected', 'Susceptible', 'Removed']
-colors = ['red', 'blue', 'green']
-lines = (base.mark_line()
-       .transform_fold(line_cols)
-       .encode(x='day:Q',
-                y=alt.Y('value:Q',
-                        axis=alt.Axis(format='%', title='Percentage of Population')),
-                color=alt.Color('key:N',
-                                scale=alt.Scale(domain=line_cols, range=colors))))
-
-import functools
-bands = functools.reduce(alt.Chart.__add__,
-                         [base.mark_area(opacity=0.1, color=color)
-                          .encode(y=f'{col}\.max:Q',y2=f'{col}\.min:Q')
-                          for col, color in zip(line_cols, colors)])
-
-
-((lines + bands + title)
- .add_selection(select_country)
- .transform_filter(select_country)
- .configure_title(fontSize=20)
- .configure_axis(labelFontSize=15, titleFontSize=18, grid=True)
- .properties(width=550, height=340))
+covid_helpers.altair_sir_plot(df_alt, sir_plot_countries[0])
 # -
 
 # ## Appendix

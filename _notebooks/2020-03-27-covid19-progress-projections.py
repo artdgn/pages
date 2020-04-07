@@ -35,11 +35,12 @@ import pandas as pd
 import covid_helpers
 
 helper = covid_helpers.OverviewData
+stylers = covid_helpers.PandasStyling
 df = helper.filter_df(helper.table_with_projections())
 df.columns
 # -
 
-# ## Estimated need for ICU beds
+# ## Projected need for ICU beds
 # > Top 20 countries by current estimated need.
 #
 # - ICU need is estimated as [6% of active cases](https://medium.com/@joschabach/flattening-the-curve-is-a-deadly-delusion-eea324fe9727).
@@ -49,75 +50,93 @@ df.columns
 #
 # - Column definitions:
 #     - <font size=2><b>Estimated ICU need per 100k population</b>: number of ICU beds estimated to be needed per 100k population by COVID-19 patents.</font>
-#     - <font size=2><b>Projected in 14 days</b>: projected ICU need per 100k population in 14 days.</font>
-#     - <font size=2><b>Projected in 30 days</b>: projected ICU need per 100k population in 30 days.</font>
+#     - <font size=2><b>Estimated daily case growth rate</b>: percentage daily change in total cases during last 5 days.</font>
+#     - <font size=2><b>Projected ICU need per 100k in 14 days</b>: self explanatory.</font>
+#     - <font size=2><b>Projected ICU need per 100k in 30 days</b>: self explanatory.</font>
 #     - <font size=2><b>ICU capacity per 100k</b>: number of ICU beds per 100k population.</font>
 #     - <font size=2><b>Estimated ICU Spare capacity per 100k</b>: estimated ICU capacity per 100k population based on assumed normal occupancy rate of 70% and number of ICU beds (only for countries with ICU beds data).</font>
-#     - <font size=2><b>Estimated daily case growth rate</b>: percentage daily change in total cases during last 5 days.</font>
+#     
 
 # > Tip: The <b><font color="b21e3e">red (need for ICU)</font></b>  and the <b><font color="3ab1d8">blue (ICU spare capacity)</font></b>  bars are on the same 0-10 scale, for easy visual comparison of columns.
 
+# +
 #hide_input
-rename_cols = {'needICU.per100k': 'Estimated <br> ICU need <br> per 100k <br> population',
-               'needICU.per100k.+14d': 'Projected <br> In 14 days', 
-               'needICU.per100k.+30d': 'Projected <br> In 30 days',               
-               'icu_capacity_per100k': 'ICU <br> capacity <br> per 100k',
-               'icu_spare_capacity_per100k': 'Estimated ICU <br> Spare capacity <br> per 100k',               
-               'growth_rate': 'Estimated <br> daily case <br> growth rate',
-              }
-icu_cols = list(rename_cols.values())[:3]
-df_icu_bars = df.rename(rename_cols, axis=1)
-df_icu_bars.sort_values(rename_cols['needICU.per100k'], ascending=False)\
-[rename_cols.values()]\
-.head(20).style\
-    .bar(subset=icu_cols[0], color='#b21e3e', vmin=0, vmax=10)\
-    .bar(subset=icu_cols[1], color='#f43d64', vmin=0, vmax=10)\
-    .bar(subset=icu_cols[2], color='#ef8ba0', vmin=0, vmax=10)\
-    .bar(subset=[rename_cols['icu_spare_capacity_per100k']], color='#3ab1d8', vmin=0, vmax=10)\
-    .applymap(lambda _: 'color: blue', subset=[rename_cols['icu_spare_capacity_per100k']])\
-    .bar(subset=[rename_cols['growth_rate']], color='#d65f5f', vmin=0, vmax=0.33)\
-    .format('<b>{:.1%}</b>', subset=[rename_cols['growth_rate']])\
-    .format('<b>{:.1f}</b>', subset=[rename_cols['icu_capacity_per100k']], na_rep="-")\
-    .format('<b>{:.1f}</b>', subset=[rename_cols['icu_spare_capacity_per100k']], na_rep="-")\
-    .format('<b>{:.2f}</b>', subset=icu_cols)\
-    .set_precision(2)
+df_data = df.sort_values('needICU.per100k', ascending=False).head(20)
+df_pretty = df_data.copy()
+df_pretty['needICU.per100k.+14d'] = stylers.with_errs_float(
+    df_pretty, 'needICU.per100k.+14d', 'needICU.per100k.+14d.err')
+df_pretty['needICU.per100k.+30d'] = stylers.with_errs_float(
+    df_pretty, 'needICU.per100k.+30d', 'needICU.per100k.+30d.err')
+df_pretty['growth_rate'] = stylers.with_errs_ratio(df_pretty, 'growth_rate', 'growth_rate_std')
 
-# ## Estimated Affected Population percentages 
+cols = {'needICU.per100k': 'Estimated<br>current<br>ICU need<br>per 100k<br>population',
+        'growth_rate': 'Estimated<br>daily case<br>growth rate',
+       'needICU.per100k.+14d': 'Projected<br>ICU need<br>per 100k<br>In 14 days', 
+       'needICU.per100k.+30d': 'Projected<br>ICU need<br>per 100k<br>In 30 days',               
+       'icu_capacity_per100k': 'ICU<br>capacity<br> per 100k',
+       'icu_spare_capacity_per100k': 'Estimated ICU<br>Spare capacity<br>per 100k',               
+      }
+
+df_pretty[cols.keys()].rename(cols, axis=1).style\
+    .bar(subset=cols['needICU.per100k'], color='#b21e3e', vmin=0, vmax=10)\
+    .apply(stylers.add_bar, color='#f43d64',
+           s_v=df_data['needICU.per100k.+14d']/10, subset=cols['needICU.per100k.+14d'])\
+    .apply(stylers.add_bar, color='#ef8ba0',
+           s_v=df_data['needICU.per100k.+30d']/10, subset=cols['needICU.per100k.+30d'])\
+    .apply(stylers.add_bar, color='#f49d5a',
+           s_v=df_data['growth_rate']/0.33, subset=cols['growth_rate'])\
+    .bar(subset=[cols['icu_spare_capacity_per100k']], color='#3ab1d8', vmin=0, vmax=10)\
+    .applymap(lambda _: 'color: blue', subset=cols['icu_spare_capacity_per100k'])\
+    .format('<b>{:.1f}</b>', subset=cols['icu_capacity_per100k'], na_rep="-")\
+    .format('<b>{:.1f}</b>', subset=cols['icu_spare_capacity_per100k'], na_rep="-")\
+    .format('<b>{:.2f}</b>', subset=cols['needICU.per100k'])
+# -
+
+# ## Projected Affected Population percentages
 # > Top 20 countries with most estimated new cases.
 #
 # - Sorted by number of estimated new cases during the last 5 days.
 # - Details of estimation and prediction calculations are in [Appendix](#appendix).
 # - Column definitions:
-#     - <font size=2><b>Estimated <i>new</i> cases in last 5 days</b>: estimated new cases in last 5 days.</font>
+#     - <font size=2><b>Estimated <i>new</i> cases in last 5 days</b>: self explanatory.</font>
 #     - <font size=2><b>Estimated <i>total</i> affected population percentage</b>: estimated percentage of total population already affected (infected, recovered, or dead).</font>
-#     - <font size=2><b>Projected in 14 days</b>: projected percentage of total affected population in 14 days.</font>
-#     - <font size=2><b>Projected in 30 days</b>: projected percentage of total affected population in 30 days.</font>
-#     - <font size=2><b>Reported fatality percentage</b>: reported total deaths divided by total cases.</font>
 #     - <font size=2><b>Estimated daily case growth rate</b>: percentage daily change in total cases during last 5 days</font>.
-#
+#     - <font size=2><b>Projected total affected percentage in 14 days</b>: of population.</font>
+#     - <font size=2><b>Projected total affected percentage in 30 days</b>: of population.</font>        
+#     - <font size=2><b>Reported fatality percentage</b>: reported total deaths divided by total cases.</font>
 
+# +
 #hide_input
-rename_cols = {'Cases.new.est': 'Estimated <br> <i>new</i> cases <br> in last 5 days', 
-               'affected_ratio.est': 'Estimated <br> <i>total</i> affected <br> population <br> percentage',
-               'affected_ratio.est.+14d': 'Projected <br> In 14 days',
-               'affected_ratio.est.+30d': 'Projected <br> In 30 days',
-               'Fatality Rate': 'Reported <br> fatality <br> percentage',
-               'growth_rate': 'Estimated <br> daily case <br> growth rate',
-              }
-progress_cols = list(rename_cols.values())[:4]
-df_progress_bars = df.rename(rename_cols, axis=1)
-df_progress_bars.sort_values(rename_cols['Cases.new.est'], ascending=False)\
-[rename_cols.values()]\
-.head(20).style\
-    .bar(subset=progress_cols[0], color='#b57b17')\
-    .bar(subset=progress_cols[1], color='#5dad64', vmin=0, vmax=1.0)\
-    .bar(subset=progress_cols[2], color='#719974', vmin=0, vmax=1.0)\
-    .bar(subset=progress_cols[3], color='#a1afa3', vmin=0, vmax=1.0)\
-    .bar(subset=[rename_cols['Fatality Rate']], color='#420412', vmin=0, vmax=0.1)\
-    .applymap(lambda _: 'color: red', subset=[rename_cols['Fatality Rate']])\
-    .bar(subset=[rename_cols['growth_rate']], color='#d65f5f', vmin=0, vmax=0.33)\
-    .format('<b>{:,.0f}</b>', subset=list(rename_cols.values())[0])\
-    .format('<b>{:.1%}</b>', subset=list(rename_cols.values())[1:])
+df_data = df.sort_values('Cases.new.est', ascending=False).head(20)
+df_pretty = df_data.copy()
+df_pretty['affected_ratio.est.+14d'] = stylers.with_errs_ratio(
+    df_pretty, 'affected_ratio.est.+14d', 'affected_ratio.est.+14d.err')
+df_pretty['affected_ratio.est.+30d'] = stylers.with_errs_ratio(
+    df_pretty, 'affected_ratio.est.+30d', 'affected_ratio.est.+30d.err')
+df_pretty['growth_rate'] = stylers.with_errs_ratio(df_pretty, 'growth_rate', 'growth_rate_std')
+
+cols = {'Cases.new.est': 'Estimated <br> <i>new</i> cases <br> in last 5 days',        
+       'affected_ratio.est': 'Estimated <br><i>total</i><br>affected<br>population<br>percentage',
+       'growth_rate': 'Estimated <br> daily case <br> growth rate',
+       'affected_ratio.est.+14d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 14 days',
+       'affected_ratio.est.+30d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 30 days',       
+       'Fatality Rate': 'Reported <br>fatality <br> percentage',
+      }
+
+df_pretty[cols.keys()].rename(cols, axis=1).style\
+    .apply(stylers.add_bar, color='#719974',
+           s_v=df_data['affected_ratio.est.+14d'], subset=cols['affected_ratio.est.+14d'])\
+    .apply(stylers.add_bar, color='#a1afa3',
+           s_v=df_data['affected_ratio.est.+30d'], subset=cols['affected_ratio.est.+30d'])\
+    .apply(stylers.add_bar, color='#f49d5a',
+           s_v=df_data['growth_rate']/0.33, subset=cols['growth_rate'])\
+    .bar(subset=cols['Cases.new.est'], color='#b57b17')\
+    .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)\
+    .bar(subset=cols['Fatality Rate'], color='#420412', vmin=0, vmax=0.1)\
+    .applymap(lambda _: 'color: red', subset=cols['Fatality Rate'])\
+    .format('<b>{:,.0f}</b>', subset=cols['Cases.new.est'])\
+    .format('<b>{:.1%}</b>', subset=[cols['Fatality Rate'], cols['affected_ratio.est']])
+# -
 
 
 # <a id='examples'></a>
@@ -129,57 +148,13 @@ df_progress_bars.sort_values(rename_cols['Cases.new.est'], ascending=False)\
 # > Tip: Choose a country from the drop-down menu to see the calculations used in the tables above and the dynamics of the model.
 
 # +
-#hide
+#hide_input
 sir_plot_countries = df.sort_values('Cases.new.est', ascending=False).head(20).index
 _, debug_dfs = helper.table_with_projections(debug_countries=sir_plot_countries)
 
 df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
-
-# +
-#hide_input
-import altair as alt
-
-alt.data_transformers.disable_max_rows()
-
-select_country = alt.selection_single(
-    name='Select',
-    fields=['country'],
-    init={'country': sir_plot_countries[0]},
-    bind=alt.binding_select(options=sorted(sir_plot_countries))
-)
-
-title = (alt.Chart(df_alt[['country', 'title']].drop_duplicates())
-              .mark_text(dy=-180, dx=0, size=16)
-              .encode(text='title:N')
-              .transform_filter(select_country))
-
-base = alt.Chart(df_alt).encode(x='day:Q')
-
-line_cols = ['Infected', 'Susceptible', 'Removed']
-colors = ['red', 'blue', 'green']
-lines = (base.mark_line()
-       .transform_fold(line_cols)
-       .encode(x='day:Q',
-                y=alt.Y('value:Q', 
-                        axis=alt.Axis(format='%', title='Percentage of Population')),
-                color=alt.Color('key:N', 
-                                scale=alt.Scale(domain=line_cols, range=colors))))
-
-import functools
-bands = functools.reduce(alt.Chart.__add__, 
-                         [base.mark_area(opacity=0.1, color=color)
-                          .encode(y=f'{col}\.max:Q',y2=f'{col}\.min:Q') 
-                          for col, color in zip(line_cols, colors)])
-
-
-((lines + bands + title)
- .add_selection(select_country)
- .transform_filter(select_country)
- .configure_title(fontSize=20)
- .configure_axis(labelFontSize=15, titleFontSize=18, grid=True)
- .properties(width=550, height=340))
+covid_helpers.altair_sir_plot(df_alt, sir_plot_countries[0])
 # -
-
 
 # ## Full table with more details
 #  - Contains reported data, estimations, projections, and numbers relative to population.
@@ -224,9 +199,20 @@ df[pretty_cols['deaths']] =(df.apply(lambda r: f" \
                          (+<b>{r['Deaths.new.per100k']:,.1f}</b></i>) \
                          ", axis=1))
 
-df.sort_values('needICU.per100k.+14d', ascending=False)\
-    [pretty_cols.values()]\
-    .style.set_na_rep("-").set_properties(**{})
+df_data = df.sort_values('needICU.per100k.+14d', ascending=False)
+df_data[pretty_cols.values()].style\
+    .apply(stylers.add_bar, color='#b57b17',
+           s_v=df_data['Cases.new.est']/df_data['Cases.new.est'].max(), 
+           subset=pretty_cols['cases'])\
+    .apply(stylers.add_bar, color='#5dad64',
+           s_v=df_data['affected_ratio.est.+14d'], 
+           subset=pretty_cols['progress'])\
+    .apply(stylers.add_bar, color='#f43d64',
+           s_v=df_data['needICU.per100k.+14d']/3, 
+           subset=pretty_cols['icu'])\
+    .apply(stylers.add_bar, color='#918f93',
+           s_v=df_data['Deaths.new.per100k']/df_data['Deaths.new.per100k'].max(), 
+           subset=pretty_cols['deaths'])\
 # -
 
 # <a id='appendix'></a>
@@ -240,6 +226,7 @@ df.sort_values('needICU.per100k.+14d', ascending=False)\
 # - Projection is done using a simple [SIR model](https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SIR_model) with (see [examples](#examples)) combined with the approach in [Total Outstanding Cases](https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases):
 #     - Growth rate calculated over the 5 past days. This is pessimistic - because it includes the testing rate growth rate as well, and is slow to react to both improvements in test coverage and "flattening" due to social isolation.
 #     - Confidence bounds are calculated by from the weighted STD of the growth rate over the last 5 days. Model predictions are calculated for growth rates within 1 STD of the weighted mean. The maximum and minimum values for each day are used as confidence bands.
+#     - For projections (into future) very noisy projections (with broad confidence bounds) are not shown in the tables.
 #     - Recovery probability being 1/20 (for 20 days to recover) where the rate estimated from [Total Outstanding Cases](https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases) is too high (on down-slopes).    
 # - ICU need is calculated as being [6% of active cases](https://medium.com/@joschabach/flattening-the-curve-is-a-deadly-delusion-eea324fe9727) where:
 #     - Active cases are taken from the SIR model.
