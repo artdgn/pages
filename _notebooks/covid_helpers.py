@@ -450,6 +450,8 @@ class OverviewData:
 
     @classmethod
     def filter_df(cls, df):
+        df = df.rename(index={'Bosnia and Herzegovina': 'Bosnia',
+                              'United Arab Emirates': 'UAE'})
         return df[df['Deaths.total'] > 10][df.columns.sort_values()]
 
 
