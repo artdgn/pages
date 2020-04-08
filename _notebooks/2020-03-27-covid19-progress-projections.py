@@ -144,13 +144,13 @@ df_pretty[cols.keys()].rename(cols, axis=1).style\
 #
 # ## Interactive plot of Model predictions
 #
-# For top 20 countries by estimated new cases.
+# For top 40 countries by estimated new cases.
 #
 # > Tip: Choose a country from the drop-down menu to see the calculations used in the tables above and the dynamics of the model.
 
 # +
 #hide_input
-sir_plot_countries = df.sort_values('Cases.new.est', ascending=False).head(20).index
+sir_plot_countries = df.sort_values('Cases.new.est', ascending=False).head(40).index
 _, debug_dfs = helper.table_with_projections(debug_countries=sir_plot_countries)
 
 df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
@@ -217,7 +217,7 @@ df_data[pretty_cols.values()].style\
 # -
 
 # <a id='appendix'></a>
-# ## Appendix
+# ## Methodology and assumptions
 # - I'm not an epidemiologist. This is an attempt to understand what's happening, and what the future looks like if current trends remain unchanged.
 # - Everything is approximated and depends heavily on underlying assumptions.
 # - Projection is done using a simple [SIR model](https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SIR_model) with (see [examples](#examples)) combined with the approach in [Total Outstanding Cases](https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases):
@@ -234,42 +234,61 @@ df_data[pretty_cols.values()].style\
 #     - Testing bias: the actual lagged fatality rate is than divided by the 1.5% figure to estimate the testing bias in a country. The estimated testing bias then multiplies the reported case numbers to estimate the *true* case numbers (*=case numbers if testing coverage was as comprehensive as in the heavily tested countries*).
 #     - The testing bias calculation is a high source of uncertainty in all these estimations and projections. Better source of testing bias (or just *true case* numbers), should make everything more accurate.  
 
+# ## World model plots (all countries stacked)
+# The outputs of the models for all countries in stacked plots.
+# > Tip: Hover the mouse of the area to see which country is which and the countries S/I/R ratios at that point. 
+#
+# > Tip: The plots are zoomable and draggable.
+
 # +
 #hide
-# _, debug_dfs = helper.table_with_projections(debug_countries=df_all.index)
+_, debug_dfs = helper.table_with_projections(debug_countries=df_all.index)
 
-# df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
+df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
+# -
 
-# +
 #hide
-# t = df_alt.rename(columns={'country': 'Country/Region'}).set_index('Country/Region')
-# t['population'] = df['population']
-# for c in t.columns[df_alt.dtypes == float]:
-#     t[c + '_tot'] = t[c] * t['population']
-# t = t.reset_index()
-# t.columns = [c.replace('.', '_') for c in t.columns]
-# t.head()
+df_tot = df_alt.rename(columns={'country': 'Country/Region'}).set_index('Country/Region')
+df_tot['population'] = df_all['population']
+for c in df_tot.columns[df_alt.dtypes == float]:
+    df_tot[c + '-total'] = df_tot[c] * df_tot['population']
+df_tot = df_tot.reset_index()
+df_tot.columns = [c.replace('.', '-') for c in df_tot.columns]
 
 # +
-# #hide
-# import altair as alt
+#hide_input
+import altair as alt
 
-# s = alt.Chart(t).mark_area(opacity=0.4).encode(
-#     x="day:Q",
-#     y=alt.Y("Susceptible_tot:Q", stack=True),
-#     color="Country/Region:N",
-#     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
-# ).interactive()
-# i = alt.Chart(t).mark_area(opacity=0.4).encode(
-#     x="day:Q",
-#     y=alt.Y("Infected_tot:Q", stack=True),
-#     color="Country/Region:N",
-#     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
-# ).interactive()
-# r = alt.Chart(t).mark_area(opacity=0.4).encode(
-#     x="day:Q",
-#     y=alt.Y("Removed_tot:Q", stack=True),
-#     color="Country/Region:N",
-#     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
-# ).interactive()
-# (s & i & r)
+alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
+    x="day:Q",
+    y=alt.Y("Infected-total:Q", stack=True),
+    color=alt.Color("Country/Region:N", legend=None),
+    tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed'],    
+).interactive()\
+.properties(width=650, height=340)\
+.properties(title='Infected')\
+.configure_title(fontSize=20)
+# -
+
+#hide_input
+alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
+    x="day:Q",
+    y=alt.Y("Removed-total:Q", stack=True),
+    color=alt.Color("Country/Region:N", legend=None),
+    tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
+).interactive()\
+.properties(width=650, height=340)\
+.properties(title='Removed (recovered / dead)')\
+.configure_title(fontSize=20)
+
+#hide_input
+alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
+    x="day:O",
+    y=alt.Y("Susceptible-total:Q", stack=True, 
+            scale=alt.Scale(domain=(0, df_tot[df_tot['day']==1]['Susceptible-total'].sum()))),
+    color=alt.Color("Country/Region:N", legend=None),
+    tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
+).interactive()\
+.properties(width=650, height=340)\
+.properties(title='Susceptible (not yet infected)')\
+.configure_title(fontSize=20)
