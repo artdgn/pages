@@ -22,7 +22,7 @@
 # - categories: [overview]
 # - author: <a href=https://github.com/artdgn/>artdgn</a>
 # - permalink: /covid-progress-projections/
-# - image: images/interactive-model.png
+# - image: images/icu-need.png
 # - toc: true
 # - hide: false
 # -
@@ -36,14 +36,15 @@ import covid_helpers
 
 helper = covid_helpers.OverviewData
 stylers = covid_helpers.PandasStyling
-df = helper.filter_df(helper.table_with_projections())
+df_all = helper.table_with_projections()
+df = helper.filter_df(df_all)
 df.columns
 # -
 
 # ## Projected need for ICU beds
-# > Top 20 countries by current estimated need.
+# > Countries sorted by current estimated need.
 #
-# - ICU need is estimated as [6% of active cases](https://medium.com/@joschabach/flattening-the-curve-is-a-deadly-delusion-eea324fe9727).
+# - ICU need is estimated as [4.4% of active reported cases](https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf).
 # - ICU capacities are from [Wikipedia](https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds) (OECD countries mostly) and [CCB capacities in Asia](https://www.researchgate.net/publication/338520008_Critical_Care_Bed_Capacity_in_Asian_Countries_and_Regions).
 # - ICU spare capacity is based on 70% normal occupancy rate ([66% in US](https://www.sccm.org/Blog/March-2020/United-States-Resource-Availability-for-COVID-19), [75% OECD](https://www.oecd-ilibrary.org/social-issues-migration-health/health-at-a-glance-2019_4dd50c09-en))
 # - Details of estimation and prediction calculations are in [Appendix](#appendix).
@@ -61,7 +62,7 @@ df.columns
 
 # +
 #hide_input
-df_data = df.sort_values('needICU.per100k', ascending=False).head(20)
+df_data = df.sort_values('needICU.per100k', ascending=False)
 df_pretty = df_data.copy()
 df_pretty['needICU.per100k.+14d'] = stylers.with_errs_float(
     df_pretty, 'needICU.per100k.+14d', 'needICU.per100k.+14d.err')
@@ -208,7 +209,7 @@ df_data[pretty_cols.values()].style\
            s_v=df_data['affected_ratio.est.+14d'], 
            subset=pretty_cols['progress'])\
     .apply(stylers.add_bar, color='#f43d64',
-           s_v=df_data['needICU.per100k.+14d']/3, 
+           s_v=df_data['needICU.per100k.+14d']/10, 
            subset=pretty_cols['icu'])\
     .apply(stylers.add_bar, color='#918f93',
            s_v=df_data['Deaths.new.per100k']/df_data['Deaths.new.per100k'].max(), 
@@ -219,17 +220,56 @@ df_data[pretty_cols.values()].style\
 # ## Appendix
 # - I'm not an epidemiologist. This is an attempt to understand what's happening, and what the future looks like if current trends remain unchanged.
 # - Everything is approximated and depends heavily on underlying assumptions.
-# - Total case estimation calculated from deaths by:
-#     - Assuming that unbiased fatality rate is 1.5% (from heavily tested countries / the cruise ship data) and that it takes 8 days on average for a case to go from being confirmed positive (after incubation + testing lag) to death. This is the same figure used by ["Estimating The Infected Population From Deaths"](https://covid19dashboards.com/covid-infected/).
-#     - Testing bias: the actual lagged fatality rate is than divided by the 1.5% figure to estimate the testing bias in a country. The estimated testing bias then multiplies the reported case numbers to estimate the *true* case numbers (*=case numbers if testing coverage was as comprehensive as in the heavily tested countries*).
-#     - The testing bias calculation is a high source of uncertainty in all these estimations and projections. Better source of testing bias (or just *true case* numbers), should make everything more accurate.
 # - Projection is done using a simple [SIR model](https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SIR_model) with (see [examples](#examples)) combined with the approach in [Total Outstanding Cases](https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases):
 #     - Growth rate calculated over the 5 past days. This is pessimistic - because it includes the testing rate growth rate as well, and is slow to react to both improvements in test coverage and "flattening" due to social isolation.
 #     - Confidence bounds are calculated by from the weighted STD of the growth rate over the last 5 days. Model predictions are calculated for growth rates within 1 STD of the weighted mean. The maximum and minimum values for each day are used as confidence bands.
 #     - For projections (into future) very noisy projections (with broad confidence bounds) are not shown in the tables.
-#     - Recovery probability being 1/20 (for 20 days to recover) where the rate estimated from [Total Outstanding Cases](https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases) is too high (on down-slopes).    
-# - ICU need is calculated as being [6% of active cases](https://medium.com/@joschabach/flattening-the-curve-is-a-deadly-delusion-eea324fe9727) where:
-#     - Active cases are taken from the SIR model.
-#     - This is both pessimistic - because real ICU rate may in reality be lower, due to testing biases, and especially in "younger" populations), and optimistic - because active cases which are on ICU take longer (so need the ICUs for longer).
+#     - Recovery probability being 1/20 (for 20 days to recover) where the rate estimated from [Total Outstanding Cases](https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases) is too high (on down-slopes).  
+# - ICU need is calculated as being [4.4% of active reported cases](https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf) where:
+#     - Active cases are taken from the SIR model. The ICU need is calculated from reported cases rather than from total estimated active cases. This is because the ICU ratio (4.4%) is based on symptomatic reported cases.
 #     - ICU capacities are from [Wikipedia](https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds) (OECD countries mostly) and [CCB capacities in Asia](https://www.researchgate.net/publication/338520008_Critical_Care_Bed_Capacity_in_Asian_Countries_and_Regions).
 #     - ICU spare capacity is based on 70% normal occupancy rate ([66% in US](https://www.sccm.org/Blog/March-2020/United-States-Resource-Availability-for-COVID-19), [75% OECD](https://www.oecd-ilibrary.org/social-issues-migration-health/health-at-a-glance-2019_4dd50c09-en))
+# - Total case estimation calculated from deaths by:
+#     - Assuming that unbiased fatality rate is 1.5% (from heavily tested countries / the cruise ship data) and that it takes 8 days on average for a case to go from being confirmed positive (after incubation + testing lag) to death. This is the same figure used by ["Estimating The Infected Population From Deaths"](https://covid19dashboards.com/covid-infected/).
+#     - Testing bias: the actual lagged fatality rate is than divided by the 1.5% figure to estimate the testing bias in a country. The estimated testing bias then multiplies the reported case numbers to estimate the *true* case numbers (*=case numbers if testing coverage was as comprehensive as in the heavily tested countries*).
+#     - The testing bias calculation is a high source of uncertainty in all these estimations and projections. Better source of testing bias (or just *true case* numbers), should make everything more accurate.  
+
+# +
+#hide
+# _, debug_dfs = helper.table_with_projections(debug_countries=df_all.index)
+
+# df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
+
+# +
+#hide
+# t = df_alt.rename(columns={'country': 'Country/Region'}).set_index('Country/Region')
+# t['population'] = df['population']
+# for c in t.columns[df_alt.dtypes == float]:
+#     t[c + '_tot'] = t[c] * t['population']
+# t = t.reset_index()
+# t.columns = [c.replace('.', '_') for c in t.columns]
+# t.head()
+
+# +
+# #hide
+# import altair as alt
+
+# s = alt.Chart(t).mark_area(opacity=0.4).encode(
+#     x="day:Q",
+#     y=alt.Y("Susceptible_tot:Q", stack=True),
+#     color="Country/Region:N",
+#     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
+# ).interactive()
+# i = alt.Chart(t).mark_area(opacity=0.4).encode(
+#     x="day:Q",
+#     y=alt.Y("Infected_tot:Q", stack=True),
+#     color="Country/Region:N",
+#     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
+# ).interactive()
+# r = alt.Chart(t).mark_area(opacity=0.4).encode(
+#     x="day:Q",
+#     y=alt.Y("Removed_tot:Q", stack=True),
+#     color="Country/Region:N",
+#     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
+# ).interactive()
+# (s & i & r)
