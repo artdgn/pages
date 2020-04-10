@@ -518,12 +518,12 @@ class PandasStyling:
     def with_errs_float(df, val_col, err_col):
         s = df.apply(lambda r: f"<b>{r[val_col]:.1f}</b>  \
             ± <font size=1><i>{r[err_col]:.1f}</i></font>", axis=1)
-        s[df[err_col] > df[val_col]] = '<font size=1><i>noisy data</i></font>'
+        s[2 * df[err_col] > df[val_col]] = '<font size=1><i>noisy data</i></font>'
         return s
 
     @staticmethod
     def with_errs_ratio(df, val_col, err_col):
         s = df.apply(lambda r: f"<b>{r[val_col]:.1%}</b>  \
             ± <font size=1><i>{r[err_col]:.1%}</i></font>", axis=1)
-        s[df[err_col] > df[val_col]] = '<font size=1><i>noisy data</i></font>'
+        s[2 * df[err_col] > df[val_col]] = '<font size=1><i>noisy data</i></font>'
         return s
