@@ -390,9 +390,7 @@ class OverviewData:
 
         rec, act = past_rec.copy(), past_act.copy()
 
-        cur_recovery_rate = (rec[-1] - rec[-2]) / act[-1]
-
-        infect_rate = growth - 1 + cur_recovery_rate
+        infect_rate = growth - 1
 
         # simulate
         for i in range(n_days):
