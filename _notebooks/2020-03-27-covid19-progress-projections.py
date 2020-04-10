@@ -15,7 +15,7 @@
 # ---
 
 # + [markdown] papermill={"duration": 0.013695, "end_time": "2020-03-27T06:31:15.895652", "exception": false, "start_time": "2020-03-27T06:31:15.881957", "status": "completed"} tags=[]
-# # ICU Demand and Total Affected Population projections per Country
+# # ICU Demand and Total Affected Population projections per Country (updated daily)
 # > Modeling current and future ICU demand and percentage of affected population. 
 #
 # - comments: true
@@ -40,6 +40,10 @@ df_all = helper.table_with_projections()
 df = helper.filter_df(df_all)
 df.columns
 # -
+
+#hide_input
+from IPython.display import display, Markdown
+Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isoformat()}***")
 
 # ## Projected need for ICU beds
 # > Countries sorted by current estimated need.
@@ -157,6 +161,8 @@ df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
 covid_helpers.altair_sir_plot(df_alt, sir_plot_countries[0])
 # -
 
+# ## For stacked plots of all countries see [world plots notebook](/notebook-posts/covid-world-progress/).
+
 # ## Full table with more details
 #  - Contains reported data, estimations, projections, and numbers relative to population.
 #  - This is a busy table in order to present as many stats as possible for each country for people to be able to inspect their counties of interest in maximum amount detail (without running the code).
@@ -233,62 +239,3 @@ df_data[pretty_cols.values()].style\
 #     - Assuming that unbiased fatality rate is 1.5% (from heavily tested countries / the cruise ship data) and that it takes 8 days on average for a case to go from being confirmed positive (after incubation + testing lag) to death. This is the same figure used by ["Estimating The Infected Population From Deaths"](https://covid19dashboards.com/covid-infected/).
 #     - Testing bias: the actual lagged fatality rate is than divided by the 1.5% figure to estimate the testing bias in a country. The estimated testing bias then multiplies the reported case numbers to estimate the *true* case numbers (*=case numbers if testing coverage was as comprehensive as in the heavily tested countries*).
 #     - The testing bias calculation is a high source of uncertainty in all these estimations and projections. Better source of testing bias (or just *true case* numbers), should make everything more accurate.  
-
-# ## World model plots (all countries stacked)
-# The outputs of the models for all countries in stacked plots.
-# > Tip: Hover the mouse of the area to see which country is which and the countries S/I/R ratios at that point. 
-#
-# > Tip: The plots are zoomable and draggable.
-
-# +
-#hide
-_, debug_dfs = helper.table_with_projections(debug_countries=df_all.index)
-
-df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
-# -
-
-#hide
-df_tot = df_alt.rename(columns={'country': 'Country/Region'}).set_index('Country/Region')
-df_tot['population'] = df_all['population']
-for c in df_tot.columns[df_alt.dtypes == float]:
-    df_tot[c + '-total'] = df_tot[c] * df_tot['population']
-df_tot = df_tot.reset_index()
-df_tot.columns = [c.replace('.', '-') for c in df_tot.columns]
-
-# +
-#hide_input
-import altair as alt
-
-alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
-    x="day:Q",
-    y=alt.Y("Infected-total:Q", stack=True),
-    color=alt.Color("Country/Region:N", legend=None),
-    tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed'],    
-).interactive()\
-.properties(width=650, height=340)\
-.properties(title='Infected')\
-.configure_title(fontSize=20)
-# -
-
-#hide_input
-alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
-    x="day:Q",
-    y=alt.Y("Removed-total:Q", stack=True),
-    color=alt.Color("Country/Region:N", legend=None),
-    tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
-).interactive()\
-.properties(width=650, height=340)\
-.properties(title='Removed (recovered / dead)')\
-.configure_title(fontSize=20)
-
-#hide_input
-alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
-    x="day:O",
-    y=alt.Y("Susceptible-total:Q", stack=True, 
-            scale=alt.Scale(domain=(0, df_tot[df_tot['day']==1]['Susceptible-total'].sum()))),
-    color=alt.Color("Country/Region:N", legend=None),
-    tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
-).interactive()\
-.properties(width=650, height=340)\
-.properties(title='Susceptible (not yet infected)')\
-.configure_title(fontSize=20)

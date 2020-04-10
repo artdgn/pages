@@ -15,8 +15,8 @@
 # ---
 
 # + [markdown] papermill={"duration": 0.013695, "end_time": "2020-03-27T06:31:15.895652", "exception": false, "start_time": "2020-03-27T06:31:15.881957", "status": "completed"} tags=[]
-# # Affected Population by Country (full table)
-# > Modeling current and future affected population percentage.
+# # Affected Population by Country (full table, updated daily)
+# > Displaying the full table of projections of affected populations.
 #
 # - categories: [overview]
 # - comments: true
@@ -39,6 +39,12 @@ stylers = covid_helpers.PandasStyling
 df = helper.filter_df(helper.table_with_projections())
 df.columns
 # -
+
+#hide_input
+from IPython.display import display, Markdown
+Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isoformat()}***")
+
+# ## For other details and projections see [main notebook](/notebook-posts/covid-progress-projections/)
 
 # ## Projected Affected Population percentage
 #
