@@ -130,7 +130,8 @@ class OverviewData:
     # modeling constants
     ## testing bias
     death_lag = 8
-    probable_unbiased_mortality_rate = 0.015  # Diamond Princess / Kuwait / South Korea
+    # https://cmmid.github.io/topics/covid19/severity/diamond_cruise_cfr_estimates.html
+    probable_unbiased_mortality_rate = 0.023  # Diamond Princess
     ## recovery estimation
     recovery_lagged9_rate = 0.07
     ## sir model
@@ -236,6 +237,7 @@ class OverviewData:
         testing_bias[testing_bias < 1] = 1
 
         df = cls.overview_table_with_per_100k()
+        df['lagged_fatality_rate'] = lagged_mortality_rate
         df['testing_bias'] = testing_bias
 
         for col, est_col in zip(cls.CASES_COLS, cls.EST_COLS):
