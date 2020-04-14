@@ -97,18 +97,12 @@ df_pretty[cols.keys()].rename(cols, axis=1).style\
 #
 # ## Interactive plot of Model predictions
 #
-# For top 20 countries by estimated new cases.
-#
 # > Tip: Choose a country from the drop-down menu to see the calculations used in the tables above and the dynamics of the model.
 
-# +
 #hide_input
-sir_plot_countries = df.sort_values('Cases.new.est', ascending=False).head(20).index
-_, debug_dfs = helper.table_with_projections(debug_countries=sir_plot_countries)
-
+_, debug_dfs = helper.table_with_projections(debug_dfs=True)
 df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
-covid_helpers.altair_sir_plot(df_alt, sir_plot_countries[0])
-# -
+covid_helpers.altair_sir_plot(df_alt, df['affected_ratio.est.+14d'].idxmax())
 
 # ## Appendix
 # <a id='appendix'></a>

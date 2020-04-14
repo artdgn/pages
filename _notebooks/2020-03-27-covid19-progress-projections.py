@@ -46,7 +46,7 @@ from IPython.display import display, Markdown
 Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isoformat()}***")
 
 # ## Projected need for ICU beds
-# > Countries sorted by current estimated need.
+# > Countries sorted by current estimated need, split into Growing and Recovering countries.
 #
 # - ICU need is estimated as [4.4% of active reported cases](https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf).
 # - ICU capacities are from [Wikipedia](https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds) (OECD countries mostly) and [CCB capacities in Asia](https://www.researchgate.net/publication/338520008_Critical_Care_Bed_Capacity_in_Asian_Countries_and_Regions).
@@ -65,7 +65,7 @@ Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isofo
 # > Tip: The <b><font color="b21e3e">red (need for ICU)</font></b>  and the <b><font color="3ab1d8">blue (ICU spare capacity)</font></b>  bars are on the same 0-10 scale, for easy visual comparison of columns.
 
 # +
-#hide_input
+#hide
 df_data = df.sort_values('needICU.per100k', ascending=False)
 df_pretty = df_data.copy()
 df_pretty['needICU.per100k.+14d'] = stylers.with_errs_float(
@@ -82,20 +82,33 @@ cols = {'needICU.per100k': 'Estimated<br>current<br>ICU need<br>per 100k<br>popu
        'icu_spare_capacity_per100k': 'Estimated ICU<br>Spare capacity<br>per 100k',               
       }
 
-df_pretty[cols.keys()].rename(cols, axis=1).style\
-    .bar(subset=cols['needICU.per100k'], color='#b21e3e', vmin=0, vmax=10)\
-    .apply(stylers.add_bar, color='#f43d64',
-           s_v=df_data['needICU.per100k.+14d']/10, subset=cols['needICU.per100k.+14d'])\
-    .apply(stylers.add_bar, color='#ef8ba0',
-           s_v=df_data['needICU.per100k.+30d']/10, subset=cols['needICU.per100k.+30d'])\
-    .apply(stylers.add_bar, color='#f49d5a',
-           s_v=df_data['growth_rate']/0.33, subset=cols['growth_rate'])\
-    .bar(subset=[cols['icu_spare_capacity_per100k']], color='#3ab1d8', vmin=0, vmax=10)\
-    .applymap(lambda _: 'color: blue', subset=cols['icu_spare_capacity_per100k'])\
-    .format('<b>{:.1f}</b>', subset=cols['icu_capacity_per100k'], na_rep="-")\
-    .format('<b>{:.1f}</b>', subset=cols['icu_spare_capacity_per100k'], na_rep="-")\
-    .format('<b>{:.2f}</b>', subset=cols['needICU.per100k'])
+def style_icu_table(df_pretty, filt):
+    return df_pretty[filt][cols.keys()].rename(cols, axis=1).style\
+        .bar(subset=cols['needICU.per100k'], color='#b21e3e', vmin=0, vmax=10)\
+        .apply(stylers.add_bar, color='#f43d64',
+               s_v=df_data[filt]['needICU.per100k.+14d']/10, subset=cols['needICU.per100k.+14d'])\
+        .apply(stylers.add_bar, color='#ef8ba0',
+               s_v=df_data[filt]['needICU.per100k.+30d']/10, subset=cols['needICU.per100k.+30d'])\
+        .apply(stylers.add_bar, color='#f49d5a',
+               s_v=df_data[filt]['growth_rate']/0.33, subset=cols['growth_rate'])\
+        .bar(subset=[cols['icu_spare_capacity_per100k']], color='#3ab1d8', vmin=0, vmax=10)\
+        .applymap(lambda _: 'color: blue', subset=cols['icu_spare_capacity_per100k'])\
+        .format('<b>{:.1f}</b>', subset=cols['icu_capacity_per100k'], na_rep="-")\
+        .format('<b>{:.1f}</b>', subset=cols['icu_spare_capacity_per100k'], na_rep="-")\
+        .format('<b>{:.2f}</b>', subset=cols['needICU.per100k'])
+
+
 # -
+
+# ### Growing countries (growth rate above 5%)
+
+#hide_input
+style_icu_table(df_pretty, df_data['growth_rate'] > 0.05)
+
+# ### Recovering countries (growth rate below 5%)
+
+#hide_input
+style_icu_table(df_pretty, df_data['growth_rate'] <= 0.05)
 
 # ## Projected Affected Population percentages
 # > Top 20 countries with most estimated new cases.
@@ -148,20 +161,14 @@ df_pretty[cols.keys()].rename(cols, axis=1).style\
 #
 # ## Interactive plot of Model predictions
 #
-# For top 40 countries by estimated new cases.
-#
 # > Tip: Choose a country from the drop-down menu to see the calculations used in the tables above and the dynamics of the model.
+#
+# > Note: For stacked plots of all countries see [world plots notebook](/notebook-posts/covid-world-progress/)
 
-# +
 #hide_input
-sir_plot_countries = df.sort_values('Cases.new.est', ascending=False).head(40).index
-_, debug_dfs = helper.table_with_projections(debug_countries=sir_plot_countries)
-
+_, debug_dfs = helper.table_with_projections(debug_dfs=True)
 df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
-covid_helpers.altair_sir_plot(df_alt, sir_plot_countries[0])
-# -
-
-# ## For stacked plots of all countries see [world plots notebook](/notebook-posts/covid-world-progress/).
+covid_helpers.altair_sir_plot(df_alt, df['needICU.per100k.+14d'].idxmax())
 
 # ## Full table with more details
 #  - Contains reported data, estimations, projections, and numbers relative to population.

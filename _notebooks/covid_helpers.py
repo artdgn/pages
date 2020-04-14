@@ -281,7 +281,7 @@ class OverviewData:
         return df
 
     @classmethod
-    def table_with_projections(cls, projection_days=(7, 14, 30, 60, 90), debug_countries=()):
+    def table_with_projections(cls, projection_days=(7, 14, 30, 60, 90), debug_dfs=False):
         df = cls.table_with_icu_capacities()
 
         df['affected_ratio'] = df['Cases.total'] / df['population']
@@ -294,9 +294,9 @@ class OverviewData:
             past_recovered=past_recovered.copy(),
             projection_days=projection_days)
 
-        if len(debug_countries):
+        if debug_dfs:
             debug_dfs = cls._SIR_timeseries_for_countries(
-                debug_countries=debug_countries,
+                debug_countries=df.index,
                 traces=traces,
                 simulation_start_day=len(past_recovered) - 1,
                 growth_rate=df['growth_rate'])
