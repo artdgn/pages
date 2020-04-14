@@ -53,7 +53,7 @@ Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isofo
 
 # +
 #hide
-_, debug_dfs = helper.table_with_projections(debug_countries=df_all.index)
+_, debug_dfs = helper.table_with_projections(debug_dfs=True)
 
 df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
 # -
