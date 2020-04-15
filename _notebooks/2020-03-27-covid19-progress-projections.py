@@ -100,15 +100,15 @@ def style_icu_table(df_pretty, filt):
 
 # -
 
-# ### Growing countries (growth rate above 5%)
+# ### Growing countries (infection rate above 5%)
 
 #hide_input
-style_icu_table(df_pretty, df_data['growth_rate'] > 0.05)
+style_icu_table(df_pretty, df_data['infection_rate'] > 0.05)
 
-# ### Recovering countries (growth rate below 5%)
+# ### Recovering countries (infection rate below 5%)
 
 #hide_input
-style_icu_table(df_pretty, df_data['growth_rate'] <= 0.05)
+style_icu_table(df_pretty, df_data['infection_rate'] <= 0.05)
 
 # ## Projected Affected Population percentages
 # > Top 20 countries with most estimated new cases.
@@ -182,35 +182,43 @@ covid_helpers.altair_sir_plot(df_alt, df['needICU.per100k.+14d'].idxmax())
 #hide_input
 pretty_cols = {}
 
-pretty_cols['cases'] = 'Cases <br> - Reported (+new) <br> - <i> Estimated (+new) </i>'
+pretty_cols['cases'] = 'Cases<br>-Reported(+new)<br>-<i>Estimated(+new)</i>'
 df[pretty_cols['cases']] =(df.apply(lambda r: f" \
-                         {r['Cases.total']:,.0f} \
-                         (+<b>{r['Cases.new']:,.0f}</b>) <br>\
-                         <i>{r['Cases.total.est']:,.0f} \
-                         (+<b>{r['Cases.new.est']:,.0f}</b></i> )\
+                         {r['Cases.total']:,.0f}\
+                         (+<b>{r['Cases.new']:,.0f}</b>)<br>\
+                         <i>{r['Cases.total.est']:,.0f}\
+                         (+<b>{r['Cases.new.est']:,.0f}</b></i>)\
                          ", axis=1))
 
-pretty_cols['progress'] = ('Affected <br> percentage <br> \
-                      - Reported <br> - <i>Estimated <br> Now / in <b>14</b> / 30 days</i>')
+pretty_cols['progress'] = ('Affected<br>percentage<br>\
+                      -Reported<br>-<i>Estimated<br>-Now<br>-In <b>14</b> / 30</i>')
 df[pretty_cols['progress']] =(df.apply(lambda r: f" \
                         {r['affected_ratio']:.2%} <br>\
-                        <i>{r['affected_ratio.est']:.2%} \
-                        <b>{r['affected_ratio.est.+14d']:.1%}</b> / \
-                        {r['affected_ratio.est.+30d']:.1%}</i>", axis=1))
+                        <i>{r['affected_ratio.est']:.1%}<br>\
+                        <b>{r['affected_ratio.est.+14d']:.1%}</b> /\
+                        {r['affected_ratio.est.+30d']:.0%}</i>", axis=1))
 
-pretty_cols['icu'] = ('Estimated <br> Need for ICU <br> per 100k <br>\
-                      Now <i> / in <b>14</b> / 30 days</i>')
+pretty_cols['icu'] = ('Estimated<br>Need for ICU<br>per 100k<br>\
+                      -Now <i><br>-In <b>14</b> / 30</i>')
 df[pretty_cols['icu']] =(df.apply(lambda r: f"\
-                        {r['needICU.per100k']:.2f} / \
-                        <i><b>{r['needICU.per100k.+14d']:.1f}</b> / \
-                        {r['needICU.per100k.+30d']:.1f}</i>", axis=1))
+                        {r['needICU.per100k']:.1f}<br>\
+                        <i><b>{r['needICU.per100k.+14d']:.1f}</b> /\
+                        {r['needICU.per100k.+30d']:.0f}</i>", axis=1))
 
-pretty_cols['deaths'] = 'Reported <br> Deaths <br> - Total (+new) <br> - <i>Per100k (+new)</i>'
-df[pretty_cols['deaths']] =(df.apply(lambda r: f" \
-                         {r['Deaths.total']:,.0f} \
-                         (+<b>{r['Deaths.new']:,.0f}</b>) <br> \
-                         <i>{r['Deaths.total.per100k']:,.1f} \
+pretty_cols['deaths'] = 'Reported<br>Deaths<br>-Total(+new)<br>-<i>Per100k(+new)</i>'
+df[pretty_cols['deaths']] =(df.apply(lambda r: f"\
+                         {r['Deaths.total']:,.0f}\
+                         (+<b>{r['Deaths.new']:,.0f}</b>) <br>\
+                         <i>{r['Deaths.total.per100k']:,.1f}\
                          (+<b>{r['Deaths.new.per100k']:,.1f}</b></i>) \
+                         ", axis=1))
+
+pretty_cols['rates'] = 'Rates:<br>- Cases<br>- Infection<br>- Fatality'
+df[pretty_cols['rates']] =(df.apply(lambda r: f" \
+                         {r['growth_rate']:,.1%} \
+                         ± <font size=1><i>{r['growth_rate_std']:.0%}</i></font><br>\
+                         <b>{r['infection_rate']:,.1%}</b><br>\
+                         <b><font color='red'>{r['Fatality Rate']:,.1%}</font></b>\
                          ", axis=1))
 
 df_data = df.sort_values('needICU.per100k.+14d', ascending=False)
@@ -227,6 +235,9 @@ df_data[pretty_cols.values()].style\
     .apply(stylers.add_bar, color='#918f93',
            s_v=df_data['Deaths.new.per100k']/df_data['Deaths.new.per100k'].max(), 
            subset=pretty_cols['deaths'])\
+    .apply(stylers.add_bar, color='#f49d5a',
+           s_v=df_data['infection_rate']/df_data['infection_rate'].max(), 
+           subset=pretty_cols['rates'])\
 # -
 
 # <a id='appendix'></a>
