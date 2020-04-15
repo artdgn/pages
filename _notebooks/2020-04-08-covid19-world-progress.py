@@ -15,7 +15,7 @@
 # ---
 
 # + [markdown] papermill={"duration": 0.013695, "end_time": "2020-03-27T06:31:15.895652", "exception": false, "start_time": "2020-03-27T06:31:15.881957", "status": "completed"} tags=[]
-# # World progres projections (updated daily)
+# # World progress projections (updated daily)
 # > Visualising stacked projections for all countries.
 #
 # - comments: true
