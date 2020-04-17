@@ -49,3 +49,23 @@ restart-jekyll: .FORCE
 	docker-compose restart jekyll
 
 .FORCE:
+
+####
+
+VENV_ACTIVATE=. .venv/bin/activate
+
+.venv:
+	python3.6 -m venv .venv
+
+requirements.txt: .venv .FORCE
+	$(VENV_ACTIVATE); \
+	pip install -U pip pip-tools; \
+	pip-compile requirements.in
+
+install: .venv
+	$(VENV_ACTIVATE); \
+	pip install -r requirements.txt
+
+jupyter: .venv
+	$(VENV_ACTIVATE); \
+	jupyter notebook
