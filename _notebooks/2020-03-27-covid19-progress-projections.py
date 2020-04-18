@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.4.1
+#       jupytext_version: 1.4.2
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -24,6 +24,7 @@
 # - permalink: /covid-progress-projections/
 # - image: images/icu-need.png
 # - toc: true
+# - sticky_rank: 1
 # - hide: false
 # -
 
