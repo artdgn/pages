@@ -24,6 +24,9 @@
 # - permalink: /covid-world-maps/
 # - toc: true
 # - hide: false
+# -
+
+# > Important: This dashboard contains the results of a predictive model that was not built by an epidimiologist.
 
 # + papermill={"duration": 0.330834, "end_time": "2020-03-27T06:31:16.261108", "exception": false, "start_time": "2020-03-27T06:31:15.930274", "status": "completed"} tags=[]
 #hide
@@ -31,55 +34,83 @@ import pandas as pd
 import covid_helpers
 
 helper = covid_helpers.OverviewData
-stylers = covid_helpers.PandasStyling
 df_all = helper.table_with_projections()
-
-# +
-#hide
-_, debug_dfs = helper.table_with_projections(debug_dfs=True)
-
-df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
 # -
 
 #hide
-df_tot = df_alt.rename(columns={'country': 'Country/Region'}).set_index('Country/Region')
-df_tot['population'] = df_all['population']
-for c in df_tot.columns[df_alt.dtypes == float]:
-    df_tot[c + '-total'] = df_tot[c] * df_tot['population']
-df_tot = df_tot.reset_index()
-df_tot.columns = [c.replace('.', '-') for c in df_tot.columns]
+df_all.columns
+
+#hide
+df_plot = (df_all.reset_index().rename(columns={'Country/Region': 'country'}))
 
 # +
 #hide
-import altair as alt
-alt.data_transformers.disable_max_rows()
+### geopandas
+import geopandas
 
-alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
-    x="day:Q",
-    y=alt.Y("Infected-total:Q", stack=True),
-    color=alt.Color("Country/Region:N", legend=None),
-    tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed'],    
-).interactive()\
-.properties(width=650, height=340)\
-.properties(title='Infected')\
-.configure_title(fontSize=20)
+shapefile= 'data_files/110m_countries/ne_110m_admin_0_countries.shp'
+world = geopandas.read_file(shapefile)[['ADMIN', 'ADM0_A3', 'geometry']]
+world.columns = ['country', 'iso_code', 'geometry']
+world = world[world['country']!="Antarctica"].copy()
+world['country'] = world['country'].map({
+    'United States of America': 'US',
+    'Taiwan': 'Taiwan*',
+    'Palestine': 'West Bank and Gaza',
+    'Côte d\'Ivoire': 'Cote d\'Ivoire',
+    'Bosnia and Herz.': 'Bosnia and Herzegovina',    
+}).fillna(world['country'])
+
+df_plot_geo = pd.merge(world, df_plot, on='country', how='left')
+# df_plot_geo.plot(column='needICU.per100k');
 
 # +
-#hide_input
-import altair as alt
-from vega_datasets import data
+#hide
+### plotly
+import plotly.graph_objects as go
 
-counties = alt.topo_feature(data.us_10m.url, 'counties')
-source = data.unemployment.url
+fig = go.FigureWidget(
+    data=go.Choropleth(
+        locations = df_plot_geo['iso_code'],
+        z = df_plot_geo['needICU.per100k'].fillna(0),
+#         z = df_plot_geo['affected_ratio.est']*100,
+#         z = df_plot_geo['growth_rate']*100,
+        zmin=0, 
+        zmax=10,
+        text = df_plot_geo['country'],
+        colorscale = 'sunsetdark',
+        autocolorscale=False,
+        marker_line_color='darkgray',
+        marker_line_width=0.5,
+        colorbar_title = 'ICU need',
+))
 
-alt.Chart(counties).mark_geoshape().encode(
-    color='rate:Q'
-).transform_lookup(
-    lookup='id',
-    from_=alt.LookupData(source, 'id', ['rate'])
-).project(
-    type='albersUsa'
-).properties(
-    width=500,
-    height=300
+fig.update_layout(
+    width=800,
+    height=350,
+    autosize=False,
+    margin=dict(t=0, b=0, l=0, r=0),
+    template="plotly_white",
+    geo=dict(
+        showframe=False,
+        showcoastlines=False,
+        projection_type='natural earth'
+    )
 )
+
+fig.update_geos(fitbounds="locations")
+
+fig.show()
+# -
+
+# # World map of current ICU need
+# For details per country see [main notebook](/notebook-posts/covid-progress-projections/)
+#
+# > Tip: The map is zoomable and draggable
+
+#hide_input
+from IPython.display import HTML
+HTML(fig.to_html())
+
+# ## Appendix
+# <a id='appendix'></a>
+# [See appendix in main notebook](/notebook-posts/covid-progress-projections/#appendix)
