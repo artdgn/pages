@@ -22,6 +22,7 @@
 # - categories: [overview, maps]
 # - author: <a href=https://github.com/Junikab/>Junikab</a>
 # - permalink: /covid-world-maps/
+# - image: images/world_map.png
 # - toc: true
 # - hide: false
 # -
@@ -39,6 +40,10 @@ df_all = helper.table_with_projections()
 
 #hide
 df_all.columns
+
+#hide_input
+from IPython.display import display, Markdown
+Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isoformat()}***")
 
 #hide
 df_plot = (df_all.reset_index().rename(columns={'Country/Region': 'country'}))
