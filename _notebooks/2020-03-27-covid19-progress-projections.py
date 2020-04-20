@@ -214,12 +214,13 @@ df[pretty_cols['deaths']] =(df.apply(lambda r: f"\
                          (+<b>{r['Deaths.new.per100k']:,.1f}</b></i>) \
                          ", axis=1))
 
-pretty_cols['rates'] = 'Rates:<br>- Cases<br>- Infection<br>- Fatality'
+pretty_cols['rates'] = 'Rates:<br>-Cases<br>-Infection<br>-Lagged<br>fatality<br>(<i>Reported</i>)'
 df[pretty_cols['rates']] =(df.apply(lambda r: f" \
                          {r['growth_rate']:,.1%} \
                          ± <font size=1><i>{r['growth_rate_std']:.0%}</i></font><br>\
                          <b>{r['infection_rate']:,.1%}</b><br>\
-                         <b><font color='red'>{r['Fatality Rate']:,.1%}</font></b>\
+                         <b><font color='red'>{r['lagged_fatality_rate']:,.1%}</font></b>\
+                         <font size=1>(<i>{r['Fatality Rate']:,.1%}</i>)</font>\
                          ", axis=1))
 
 df_data = df.sort_values('needICU.per100k.+14d', ascending=False)
