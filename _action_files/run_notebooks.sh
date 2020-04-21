@@ -7,7 +7,7 @@ ERRORS=""
 
 for file in 20*.py
 do
-    if jupytext -o "${file%.*}.py" "${file%.*}.ipynb"; then
+    if jupytext -o "${file%.*}.ipynb" "${file%.*}.py"; then
         echo "Sucessfully converted ${file}\n\n\n\n"
         git add "${file}"
     else
