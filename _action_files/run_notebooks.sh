@@ -5,6 +5,17 @@ cd _notebooks/
 
 ERRORS=""
 
+for file in 20*.py
+do
+    if jupytext -o "${file%.*}.py" "${file%.*}.ipynb"; then
+        echo "Sucessfully converted ${file}\n\n\n\n"
+        git add "${file}"
+    else
+        echo "ERROR Converting ${file}"
+        ERRORS="${ERRORS}, ${file}"
+    fi
+done
+
 for file in *.ipynb
 do
     if papermill --kernel python3 "${file}" "${file}"; then
