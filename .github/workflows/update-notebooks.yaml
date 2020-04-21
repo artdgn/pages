@@ -7,7 +7,11 @@ on:
 
 jobs:
   update-notebooks:
-    if: (github.event_name == 'schedule' || (github.event.issue.title == '[workflow] Refresh Notebooks'  && github.actor == 'artdgn' && github.event_name == 'issues')) && github.repository == 'artdgn/notebook-posts'
+    if: |
+      (github.event_name == 'schedule' ||
+       (github.event.issue.title == '[workflow] Refresh Notebooks'  &&
+        github.actor == 'artdgn' && github.event_name == 'issues'))
+      && github.repository == 'artdgn/notebook-posts'
     runs-on: ubuntu-latest
     steps:
   
