@@ -47,16 +47,12 @@ from IPython.display import display, Markdown
 Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isoformat()}***")
 
 # ## Projected need for ICU beds
-# > Countries sorted by current estimated need, split into Growing and Recovering countries.
+# > Countries sorted by current estimated need, split into Growing and Recovering countries by current infection rate.
 #
-# - ICU need is estimated as [4.4% of active reported cases](https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf).
-# - ICU capacities are from [Wikipedia](https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds) (OECD countries mostly) and [CCB capacities in Asia](https://www.researchgate.net/publication/338520008_Critical_Care_Bed_Capacity_in_Asian_Countries_and_Regions).
-# - ICU spare capacity is based on 70% normal occupancy rate ([66% in US](https://www.sccm.org/Blog/March-2020/United-States-Resource-Availability-for-COVID-19), [75% OECD](https://www.oecd-ilibrary.org/social-issues-migration-health/health-at-a-glance-2019_4dd50c09-en))
 # - Details of estimation and prediction calculations are in [Appendix](#appendix).
-#
 # - Column definitions:
 #     - <font size=2><b>Estimated ICU need per 100k population</b>: number of ICU beds estimated to be needed per 100k population by COVID-19 patents.</font>
-#     - <font size=2><b>Estimated daily case growth rate</b>: percentage daily change in total cases during last 5 days.</font>
+#     - <font size=2><b>Estimated daily infection rate</b>: daily percentage rate of new infections relative to active infections during last 5 days.</font>
 #     - <font size=2><b>Projected ICU need per 100k in 14 days</b>: self explanatory.</font>
 #     - <font size=2><b>Projected ICU need per 100k in 30 days</b>: self explanatory.</font>
 #     - <font size=2><b>ICU capacity per 100k</b>: number of ICU beds per 100k population.</font>
@@ -73,10 +69,10 @@ df_pretty['needICU.per100k.+14d'] = stylers.with_errs_float(
     df_pretty, 'needICU.per100k.+14d', 'needICU.per100k.+14d.err')
 df_pretty['needICU.per100k.+30d'] = stylers.with_errs_float(
     df_pretty, 'needICU.per100k.+30d', 'needICU.per100k.+30d.err')
-df_pretty['growth_rate'] = stylers.with_errs_ratio(df_pretty, 'growth_rate', 'growth_rate_std')
+df_pretty['infection_rate'] = stylers.with_errs_ratio(df_pretty, 'infection_rate', 'growth_rate_std')
 
 cols = {'needICU.per100k': 'Estimated<br>current<br>ICU need<br>per 100k<br>population',
-        'growth_rate': 'Estimated<br>daily case<br>growth rate',
+        'infection_rate': 'Estimated<br>daily infection<br>rate',
        'needICU.per100k.+14d': 'Projected<br>ICU need<br>per 100k<br>In 14 days', 
        'needICU.per100k.+30d': 'Projected<br>ICU need<br>per 100k<br>In 30 days',               
        'icu_capacity_per100k': 'ICU<br>capacity<br> per 100k',
@@ -91,7 +87,7 @@ def style_icu_table(df_pretty, filt):
         .apply(stylers.add_bar, color='#ef8ba0',
                s_v=df_data[filt]['needICU.per100k.+30d']/10, subset=cols['needICU.per100k.+30d'])\
         .apply(stylers.add_bar, color='#f49d5a',
-               s_v=df_data[filt]['growth_rate']/0.33, subset=cols['growth_rate'])\
+               s_v=df_data[filt]['infection_rate']/0.33, subset=cols['infection_rate'])\
         .bar(subset=[cols['icu_spare_capacity_per100k']], color='#3ab1d8', vmin=0, vmax=10)\
         .applymap(lambda _: 'color: blue', subset=cols['icu_spare_capacity_per100k'])\
         .format('<b>{:.1f}</b>', subset=cols['icu_capacity_per100k'], na_rep="-")\
@@ -119,10 +115,10 @@ style_icu_table(df_pretty, df_data['infection_rate'] <= 0.05)
 # - Column definitions:
 #     - <font size=2><b>Estimated <i>new</i> cases in last 5 days</b>: self explanatory.</font>
 #     - <font size=2><b>Estimated <i>total</i> affected population percentage</b>: estimated percentage of total population already affected (infected, recovered, or dead).</font>
-#     - <font size=2><b>Estimated daily case growth rate</b>: percentage daily change in total cases during last 5 days</font>.
+#     - <font size=2><b>Estimated daily infection rate</b>: daily percentage rate of new infections relative to active infections during last 5 days.</font>
 #     - <font size=2><b>Projected total affected percentage in 14 days</b>: of population.</font>
 #     - <font size=2><b>Projected total affected percentage in 30 days</b>: of population.</font>        
-#     - <font size=2><b>Reported fatality percentage</b>: reported total deaths divided by total cases.</font>
+#     - <font size=2><b>Lagged fatality rate</b>: reported total deaths divided by total cases 8 days ago.</font>
 
 # +
 #hide_input
@@ -132,14 +128,14 @@ df_pretty['affected_ratio.est.+14d'] = stylers.with_errs_ratio(
     df_pretty, 'affected_ratio.est.+14d', 'affected_ratio.est.+14d.err')
 df_pretty['affected_ratio.est.+30d'] = stylers.with_errs_ratio(
     df_pretty, 'affected_ratio.est.+30d', 'affected_ratio.est.+30d.err')
-df_pretty['growth_rate'] = stylers.with_errs_ratio(df_pretty, 'growth_rate', 'growth_rate_std')
+df_pretty['infection_rate'] = stylers.with_errs_ratio(df_pretty, 'infection_rate', 'growth_rate_std')
 
 cols = {'Cases.new.est': 'Estimated <br> <i>new</i> cases <br> in last 5 days',        
        'affected_ratio.est': 'Estimated <br><i>total</i><br>affected<br>population<br>percentage',
-       'growth_rate': 'Estimated <br> daily case <br> growth rate',
+       'infection_rate': 'Estimated <br>daily infection<br>rate',
        'affected_ratio.est.+14d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 14 days',
        'affected_ratio.est.+30d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 30 days',       
-       'Fatality Rate': 'Reported <br>fatality <br> percentage',
+       'lagged_fatality_rate': 'Lagged<br>fatality <br> percentage',
       }
 
 df_pretty[cols.keys()].rename(cols, axis=1).style\
@@ -148,13 +144,13 @@ df_pretty[cols.keys()].rename(cols, axis=1).style\
     .apply(stylers.add_bar, color='#a1afa3',
            s_v=df_data['affected_ratio.est.+30d'], subset=cols['affected_ratio.est.+30d'])\
     .apply(stylers.add_bar, color='#f49d5a',
-           s_v=df_data['growth_rate']/0.33, subset=cols['growth_rate'])\
+           s_v=df_data['infection_rate']/0.33, subset=cols['infection_rate'])\
     .bar(subset=cols['Cases.new.est'], color='#b57b17')\
     .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)\
-    .bar(subset=cols['Fatality Rate'], color='#420412', vmin=0, vmax=0.1)\
-    .applymap(lambda _: 'color: red', subset=cols['Fatality Rate'])\
+    .bar(subset=cols['lagged_fatality_rate'], color='#420412', vmin=0, vmax=0.2)\
+    .applymap(lambda _: 'color: red', subset=cols['lagged_fatality_rate'])\
     .format('<b>{:,.0f}</b>', subset=cols['Cases.new.est'])\
-    .format('<b>{:.1%}</b>', subset=[cols['Fatality Rate'], cols['affected_ratio.est']])
+    .format('<b>{:.1%}</b>', subset=[cols['lagged_fatality_rate'], cols['affected_ratio.est']])
 # -
 
 
@@ -256,6 +252,7 @@ df_data[pretty_cols.values()].style\
 #     - ICU capacities are from [Wikipedia](https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds) (OECD countries mostly) and [CCB capacities in Asia](https://www.researchgate.net/publication/338520008_Critical_Care_Bed_Capacity_in_Asian_Countries_and_Regions).
 #     - ICU spare capacity is based on 70% normal occupancy rate ([66% in US](https://www.sccm.org/Blog/March-2020/United-States-Resource-Availability-for-COVID-19), [75% OECD](https://www.oecd-ilibrary.org/social-issues-migration-health/health-at-a-glance-2019_4dd50c09-en))
 # - Total case estimation calculated from deaths by:
-#     - Assuming that unbiased fatality rate is 2.3% (from heavily tested countries / the [cruise ship data](https://cmmid.github.io/topics/covid19/severity/diamond_cruise_cfr_estimates.html)) and that it takes 8 days on average for a case to go from being confirmed positive (after incubation + testing lag) to death. This is the same figure used by ["Estimating The Infected Population From Deaths"](https://covid19dashboards.com/covid-infected/).
-#     - Testing bias: the actual lagged fatality rate is than divided by the 2.3% figure to estimate the testing bias in a country. The estimated testing bias then multiplies the reported case numbers to estimate the *true* case numbers (*=case numbers if testing coverage was as comprehensive as in the heavily tested countries*).
+#     - Assuming that unbiased fatality rate is 0.72% ([current meta estimate in](https://www.cebm.net/covid-19/global-covid-19-case-fatality-rates/)). 
+#     - The average fatality lag is assumed to be 8 days on average for a case to go from being confirmed positive (after incubation + testing lag) to death. This is the same figure used by ["Estimating The Infected Population From Deaths"](https://covid19dashboards.com/covid-infected/).
+#     - Testing bias: the actual lagged fatality rate is than divided by the 0.72% figure to estimate the testing bias in a country. The estimated testing bias then multiplies the reported case numbers to estimate the *true* case numbers (*=case numbers if testing coverage was as comprehensive as in the heavily tested countries*).
 #     - The testing bias calculation is a high source of uncertainty in all these estimations and projections. Better source of testing bias (or just *true case* numbers), should make everything more accurate.  

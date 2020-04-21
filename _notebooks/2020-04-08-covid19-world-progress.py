@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.4.1
+#       jupytext_version: 1.4.2
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -41,7 +41,8 @@ df_all = helper.table_with_projections()
 
 #hide_input
 from IPython.display import display, Markdown
-Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isoformat()}***")
+Markdown(f"***Based on data up to: \
+         {pd.to_datetime(covid_helpers.OverviewData.dt_today).date().isoformat()}***")
 
 # ## For details per country see [main notebook](/notebook-posts/covid-progress-projections/)
 
@@ -105,6 +106,6 @@ alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
 .properties(title='Susceptible (not yet infected)')\
 .configure_title(fontSize=20)
 
-# ## Appendix
+# ## Appendix and Methodology
 # <a id='appendix'></a>
 # [See appendix in main notebook](/notebook-posts/covid-progress-projections/#appendix)

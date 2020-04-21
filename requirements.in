@@ -1,6 +1,7 @@
 pandas
 matplotlib
 beautifulsoup4
+lxml
 altair
 jupyter
 jupytext
