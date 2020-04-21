@@ -18,7 +18,7 @@ code for COVID-19 JHU data is taken from the excellent https://github.com/github
 (that also has now my [ICU demand projections dashboard](https://covid19dashboards.com/covid-progress-projections/)). 
 Here I can experiment a bit more.
  
- 
+
 -----------
 
 ### Local development:
