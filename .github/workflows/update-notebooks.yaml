@@ -95,8 +95,7 @@ jobs:
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
         git config --global user.name "github-actions[bot]"
         git add images/
-        git commit -m'[bot] refresh notebooks'
-        git push -f
+        git commit -m'[bot] refresh notebooks' && git push -f || true
 
     - name: convert notebooks and word docs to posts
       uses: ./_action_files
