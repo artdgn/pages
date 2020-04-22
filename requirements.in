@@ -6,4 +6,5 @@ altair
 jupyter
 jupytext
 geopandas
+papermill
 plotly
