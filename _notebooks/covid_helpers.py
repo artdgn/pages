@@ -472,7 +472,9 @@ class OverviewData:
     def filter_df(cls, df):
         df = df.rename(index={'Bosnia and Herzegovina': 'Bosnia',
                               'United Arab Emirates': 'UAE'})
-        return df[(df['Deaths.total'] > 10) & (df['population'] > 1e6)][df.columns.sort_values()]
+        return df[(df['Cases.total'] > 300) &
+                  (df['Deaths.total'] > 20) &
+                  (df['population'] > 3e5)][df.columns.sort_values()]
 
 
 def pandas_console_options():

@@ -234,7 +234,7 @@ df_data[pretty_cols.values()].style\
            s_v=df_data['Deaths.new.per100k']/df_data['Deaths.new.per100k'].max(), 
            subset=pretty_cols['deaths'])\
     .apply(stylers.add_bar, color='#f49d5a',
-           s_v=df_data['infection_rate']/df_data['infection_rate'].max(), 
+           s_v=df_data['infection_rate']/0.3,
            subset=pretty_cols['rates'])\
 # -
 
