@@ -16,11 +16,11 @@
 
 # + [markdown] papermill={"duration": 0.013695, "end_time": "2020-03-27T06:31:15.895652", "exception": false, "start_time": "2020-03-27T06:31:15.881957", "status": "completed"} tags=[]
 # # World maps (updated daily)
-# > Visualising data on maps
+# > Visualising projections and estimations on maps
 #
 # - comments: true
 # - categories: [overview, maps]
-# - author: <a href=https://github.com/Junikab/>Junikab</a>
+# - author: <a href=https://github.com/Junikab/>Junikab</a>, <a href=https://github.com/artdgn/>artdgn</a>
 # - permalink: /covid-world-maps/
 # - image: images/world_map.png
 # - toc: true
@@ -39,7 +39,7 @@ df_all = helper.table_with_projections()
 # -
 
 #hide
-df_all.columns
+df_all.columns.sort_values()
 
 #hide_input
 from IPython.display import display, Markdown
@@ -70,15 +70,13 @@ df_plot_geo = pd.merge(world, df_plot, on='country', how='left')
 
 # +
 #hide
-### plotly
 import plotly.graph_objects as go
+import plotly.express as px
 
 fig = go.FigureWidget(
     data=go.Choropleth(
         locations = df_plot_geo['iso_code'],
         z = df_plot_geo['needICU.per100k'].fillna(0),
-#         z = df_plot_geo['affected_ratio.est']*100,
-#         z = df_plot_geo['growth_rate']*100,
         zmin=0, 
         zmax=10,
         text = df_plot_geo['country'],
@@ -86,13 +84,13 @@ fig = go.FigureWidget(
         autocolorscale=False,
         marker_line_color='darkgray',
         marker_line_width=0.5,
-        colorbar_title = 'ICU need',
+        colorbar_title = 'ICU need<br>(current)',
 ))
 
 fig.update_layout(
     width=800,
-    height=350,
-    autosize=False,
+    height=450,
+    autosize=True,
     margin=dict(t=0, b=0, l=0, r=0),
     template="plotly_white",
     geo=dict(
@@ -102,15 +100,70 @@ fig.update_layout(
     )
 )
 
-fig.update_geos(fitbounds="locations")
+fig.update_geos(fitbounds="locations");
 
-fig.show()
+
+# +
+#hide
+def button_dict(col, title, colorscale, scale_max=None, percent=False):
+    multiply = 100 if percent else 1
+    scale_obj = getattr(px.colors.sequential, colorscale)
+    scale_arg = [[(i-1)/(len(scale_obj)-1), c] for i, c in enumerate(scale_obj, start=1)]
+    return dict(args=[{
+        'z': [(multiply*df_plot_geo[col]).fillna(0).to_list()],
+        'zmax': [(multiply*df_plot_geo[col]).max() if scale_max is None else scale_max],
+        'colorbar': [{'title': {'text': title}}],
+        'colorscale': [scale_arg]}],
+                label=title, method="restyle")
+
+fig.update_layout(
+    updatemenus=[
+        dict(
+            buttons=[
+                button_dict('needICU.per100k', 'ICU need<br>(current)', 'Sunsetdark', 10),
+                button_dict('needICU.per100k.+14d', 'ICU need<br>(in 14 days)', 'Sunsetdark', 10),
+                button_dict('needICU.per100k.+30d', 'ICU need<br>(in 30 days)', 'Sunsetdark', 10),
+                button_dict('needICU.per100k.+60d', 'ICU need<br>(in 60 days)', 'Sunsetdark', 10),
+                button_dict('icu_capacity_per100k', 'ICU Capacity', 'Blues'),
+            ],
+            direction="down",
+            pad={"r": 10, "t": 10},
+            showactive=True, x=0.05, xanchor="left", y=1.1, yanchor="top"),
+        dict(
+            buttons=[
+                button_dict('affected_ratio.est', 'Affected percent<br>(Current)', 'Bluyl', percent=True ),
+                button_dict('affected_ratio.est.+14d', 'Affected percent<br>(in 14 days)', 'Bluyl', 25, percent=True),
+                button_dict('affected_ratio.est.+30d', 'Affected percent<br>(in 30 days)', 'Bluyl', 25, percent=True),
+                button_dict('affected_ratio.est.+60d', 'Affected percent<br>(in 60 days)', 'Bluyl', 25, percent=True),
+            ],
+            direction="down",
+            pad={"r": 10, "t": 10},
+            showactive=True, x=0.23, xanchor="left", y=1.1, yanchor="top"),
+        dict(
+            buttons=[
+                button_dict('infection_rate', 'Infection rate<br>percent', 'YlOrRd', 33, percent=True),
+                button_dict('Cases.new.per100k.est', 'New cases<br>estimated per 100k', 'YlOrRd'),
+                button_dict('Cases.new.est', 'New cases<br>(estimated)', 'YlOrRd'),
+            ],
+            direction="down",
+            pad={"r": 10, "t": 10},
+            showactive=True, x=0.43, xanchor="left", y=1.1, yanchor="top"),
+        dict(
+            buttons=[
+                button_dict('lagged_fatality_rate', 'Fatality rate %<br>(lagged)', 'PuRd', 20, percent=True),
+                button_dict('Deaths.total.per100k', 'Deaths<br>per 100k', 'Reds'),
+            ],
+            direction="down",
+            pad={"r": 10, "t": 10},
+            showactive=True, x=0.65, xanchor="left", y=1.1, yanchor="top"),
+    ])
 # -
 
-# # World map of current ICU need
+# # World map (choose column)
+#
 # For details per country see [main notebook](/notebook-posts/covid-progress-projections/)
 #
-# > Tip: The map is zoomable and draggable
+# > Tip: Select columns to show on map to from the dropdown menus. The map is zoomable and draggable.
 
 #hide_input
 from IPython.display import HTML
