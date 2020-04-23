@@ -24,7 +24,7 @@
 # - image: images/affected-pop.png
 # - permalink: /covid-affected-population/
 # - toc: true
-# - hide: false
+# - hide: true
 # -
 
 # > Important: This dashboard contains the results of a predictive model that was not built by an epidimiologist.

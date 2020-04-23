@@ -24,7 +24,7 @@
 # - permalink: /covid-progress-projections/
 # - image: images/icu-need.png
 # - toc: true
-# - sticky_rank: 1
+# - sticky_rank: 0
 # - hide: false
 # -
 

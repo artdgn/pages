@@ -24,6 +24,7 @@
 # - permalink: /covid-world-maps/
 # - image: images/world_map.png
 # - toc: true
+# - sticky_rank: 1
 # - hide: false
 # -
 
