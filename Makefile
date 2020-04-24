@@ -33,7 +33,7 @@ convert: .FORCE
 # stop all containers
 stop: .FORCE
 	docker-compose stop
-	docker ps | grep fastpages | awk '{print $1}' | xargs docker stop
+	docker ps | grep fastpages | awk '{print $1}' | xargs docker stop || true
 
 # remove all containers
 remove: .FORCE
@@ -72,3 +72,10 @@ install: .venv
 jupyter: .venv
 	$(VENV_ACTIVATE); \
 	jupyter notebook
+
+update-notebooks: .venv
+	$(VENV_ACTIVATE); \
+	./_action_files/run_notebooks.sh ./_notebooks
+
+update-server: .venv stop update-notebooks server
+

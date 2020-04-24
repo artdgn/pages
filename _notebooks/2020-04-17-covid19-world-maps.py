@@ -43,7 +43,7 @@ df_all = helper.table_with_projections()
 df_all.columns.sort_values()
 
 #hide_input
-from IPython.display import display, Markdown
+from IPython.display import Markdown
 Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isoformat()}***")
 
 #hide
@@ -54,16 +54,16 @@ df_plot = (df_all.reset_index().rename(columns={'Country/Region': 'country'}))
 ### geopandas
 import geopandas
 
-shapefile= 'data_files/110m_countries/ne_110m_admin_0_countries.shp'
+shapefile = 'data_files/110m_countries/ne_110m_admin_0_countries.shp'
 world = geopandas.read_file(shapefile)[['ADMIN', 'ADM0_A3', 'geometry']]
 world.columns = ['country', 'iso_code', 'geometry']
-world = world[world['country']!="Antarctica"].copy()
+world = world[world['country'] != "Antarctica"].copy()
 world['country'] = world['country'].map({
     'United States of America': 'US',
     'Taiwan': 'Taiwan*',
     'Palestine': 'West Bank and Gaza',
     'Côte d\'Ivoire': 'Cote d\'Ivoire',
-    'Bosnia and Herz.': 'Bosnia and Herzegovina',    
+    'Bosnia and Herz.': 'Bosnia and Herzegovina',
 }).fillna(world['country'])
 
 df_plot_geo = pd.merge(world, df_plot, on='country', how='left')
@@ -76,17 +76,17 @@ import plotly.express as px
 
 fig = go.FigureWidget(
     data=go.Choropleth(
-        locations = df_plot_geo['iso_code'],
-        z = df_plot_geo['needICU.per100k'].fillna(0),
-        zmin=0, 
+        locations=df_plot_geo['iso_code'],
+        z=df_plot_geo['needICU.per100k'].fillna(0),
+        zmin=0,
         zmax=10,
-        text = df_plot_geo['country'],
-        colorscale = 'sunsetdark',
+        text=df_plot_geo['country'],
+        colorscale='sunsetdark',
         autocolorscale=False,
         marker_line_color='darkgray',
         marker_line_width=0.5,
-        colorbar_title = 'ICU need<br>(current)',
-))
+        colorbar_title='ICU need<br>(current)',
+    ))
 
 fig.update_layout(
     width=800,
@@ -104,19 +104,26 @@ fig.update_layout(
 fig.update_geos(fitbounds="locations");
 
 
-# +
+# -
+
 #hide
 def button_dict(col, title, colorscale, scale_max=None, percent=False):
-    multiply = 100 if percent else 1
+    series = df_plot_geo[col].fillna(0)
+    series *= 100 if percent else 1
+
     scale_obj = getattr(px.colors.sequential, colorscale)
-    scale_arg = [[(i-1)/(len(scale_obj)-1), c] for i, c in enumerate(scale_obj, start=1)]
-    return dict(args=[{
-        'z': [(multiply*df_plot_geo[col]).fillna(0).to_list()],
-        'zmax': [(multiply*df_plot_geo[col]).max() if scale_max is None else scale_max],
-        'colorbar': [{'title': {'text': title}}],
-        'colorscale': [scale_arg]}],
+    scale_arg = [[(i - 1) / (len(scale_obj) - 1), c] for i, c in enumerate(scale_obj, start=1)]
+
+    max_arg = series.max() if scale_max is None else min(scale_max, series.max())
+
+    return dict(args=[{'z': [series.to_list()],
+                       'zmax': [max_arg],
+                       'colorbar': [{'title': {'text': title}}],
+                       'colorscale': [scale_arg]}],
                 label=title, method="restyle")
 
+
+#hide
 fig.update_layout(
     updatemenus=[
         dict(
@@ -124,7 +131,6 @@ fig.update_layout(
                 button_dict('needICU.per100k', 'ICU need<br>(current)', 'Sunsetdark', 10),
                 button_dict('needICU.per100k.+14d', 'ICU need<br>(in 14 days)', 'Sunsetdark', 10),
                 button_dict('needICU.per100k.+30d', 'ICU need<br>(in 30 days)', 'Sunsetdark', 10),
-                button_dict('needICU.per100k.+60d', 'ICU need<br>(in 60 days)', 'Sunsetdark', 10),
                 button_dict('icu_capacity_per100k', 'ICU Capacity', 'Blues'),
             ],
             direction="down",
@@ -132,17 +138,19 @@ fig.update_layout(
             showactive=True, x=0.05, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
-                button_dict('affected_ratio.est', 'Affected percent<br>(Current)', 'Bluyl', percent=True ),
+                button_dict('affected_ratio.est', 'Affected percent<br>(Current)', 'Bluyl', percent=True),
                 button_dict('affected_ratio.est.+14d', 'Affected percent<br>(in 14 days)', 'Bluyl', 25, percent=True),
                 button_dict('affected_ratio.est.+30d', 'Affected percent<br>(in 30 days)', 'Bluyl', 25, percent=True),
-                button_dict('affected_ratio.est.+60d', 'Affected percent<br>(in 60 days)', 'Bluyl', 25, percent=True),
+                button_dict('Cases.total.per100k.est', 'Total cases<br>estimated per 100k', 'YlOrRd'),
+                button_dict('Cases.total.est', 'Total cases<br>(estimated)', 'YlOrRd'),
             ],
             direction="down",
             pad={"r": 10, "t": 10},
             showactive=True, x=0.23, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
-                button_dict('infection_rate', 'Infection rate<br>percent', 'YlOrRd', 33, percent=True),
+                button_dict('infection_rate', 'Infection rate<br>percent (blue-red)', 'Bluered', 10, percent=True),
+                button_dict('infection_rate', 'Infection rate<br>percent', 'YlOrRd', 33, percent=True),                
                 button_dict('Cases.new.per100k.est', 'New cases<br>estimated per 100k', 'YlOrRd'),
                 button_dict('Cases.new.est', 'New cases<br>(estimated)', 'YlOrRd'),
             ],
@@ -151,14 +159,15 @@ fig.update_layout(
             showactive=True, x=0.43, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
-                button_dict('lagged_fatality_rate', 'Fatality rate %<br>(lagged)', 'PuRd', 20, percent=True),
                 button_dict('Deaths.total.per100k', 'Deaths<br>per 100k', 'Reds'),
+                button_dict('Deaths.total', 'Deaths<br>Total', 'Reds'),
+                button_dict('lagged_fatality_rate', 'Fatality rate %<br>(lagged)', 'PuRd', 20, percent=True),
+                
             ],
             direction="down",
             pad={"r": 10, "t": 10},
             showactive=True, x=0.65, xanchor="left", y=1.1, yanchor="top"),
     ])
-# -
 
 # # World map (choose column)
 #

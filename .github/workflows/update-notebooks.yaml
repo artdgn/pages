@@ -70,7 +70,7 @@ jobs:
     - name: update notebooks
       id: update_nb
       run: |
-        ./_action_files/run_notebooks.sh
+        ./_action_files/run_notebooks.sh ./_notebooks
 
     - name: Create an issue if notebook update failure occurs
       if: github.event_name == 'schedule' && steps.update_nb.outputs.error_bool == 'true'

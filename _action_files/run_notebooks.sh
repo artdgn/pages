@@ -1,7 +1,9 @@
 #!/bin/sh
 set -e
-cd $(dirname "$0")/..
-cd _notebooks/
+
+notebook_dir=$1
+
+cd $notebook_dir
 
 ERRORS=""
 
