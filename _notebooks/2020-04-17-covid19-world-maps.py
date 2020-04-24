@@ -96,19 +96,25 @@ fig.update_layout(
     template="plotly_white",
     geo=dict(
         showframe=False,
-        showcoastlines=False,
-        projection_type='natural earth'
+        projection_type='natural earth',
+        resolution=110,
+        showcoastlines=True, coastlinecolor="RebeccaPurple",
+        showland=True, landcolor="Grey",
+        showocean=True, oceancolor="LightBlue",
+        showlakes=True, lakecolor="LightBlue",
+        fitbounds="locations"
     )
-)
-
-fig.update_geos(fitbounds="locations");
+);
 
 
 # -
 
 #hide
-def button_dict(col, title, colorscale, scale_max=None, percent=False):
+def button_dict(col, title, colorscale, scale_max=None, percent=False):    
     series = df_plot_geo[col].fillna(0)
+#     series_text = (df_plot_geo['country'] + '<br>' + 
+#                    (series.apply('{:.1%}'.format) if percent 
+#                    else series.apply('{:.2f}'.format)))    
     series *= 100 if percent else 1
 
     scale_obj = getattr(px.colors.sequential, colorscale)
@@ -117,6 +123,7 @@ def button_dict(col, title, colorscale, scale_max=None, percent=False):
     max_arg = series.max() if scale_max is None else min(scale_max, series.max())
 
     return dict(args=[{'z': [series.to_list()],
+#                        'text': [series_text.to_list()],
                        'zmax': [max_arg],
                        'colorbar': [{'title': {'text': title}}],
                        'colorscale': [scale_arg]}],
@@ -128,9 +135,12 @@ fig.update_layout(
     updatemenus=[
         dict(
             buttons=[
-                button_dict('needICU.per100k', 'ICU need<br>(current)', 'Sunsetdark', 10),
-                button_dict('needICU.per100k.+14d', 'ICU need<br>(in 14 days)', 'Sunsetdark', 10),
-                button_dict('needICU.per100k.+30d', 'ICU need<br>(in 30 days)', 'Sunsetdark', 10),
+                button_dict('needICU.per100k', 
+                            'ICU need<br>(current)', 'Sunsetdark', 10),
+                button_dict('needICU.per100k.+14d', 
+                            'ICU need<br>(in 14 days)', 'Sunsetdark', 10),
+                button_dict('needICU.per100k.+30d', 
+                            'ICU need<br>(in 30 days)', 'Sunsetdark', 10),
                 button_dict('icu_capacity_per100k', 'ICU Capacity', 'Blues'),
             ],
             direction="down",
@@ -138,10 +148,14 @@ fig.update_layout(
             showactive=True, x=0.05, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
-                button_dict('affected_ratio.est', 'Affected percent<br>(Current)', 'Bluyl', percent=True),
-                button_dict('affected_ratio.est.+14d', 'Affected percent<br>(in 14 days)', 'Bluyl', 25, percent=True),
-                button_dict('affected_ratio.est.+30d', 'Affected percent<br>(in 30 days)', 'Bluyl', 25, percent=True),
-                button_dict('Cases.total.per100k.est', 'Total cases<br>estimated per 100k', 'YlOrRd'),
+                button_dict('affected_ratio.est', 
+                            'Affected percent<br>(Current)', 'Bluyl', percent=True),
+                button_dict('affected_ratio.est.+14d', 
+                            'Affected percent<br>(in 14 days)', 'Bluyl', 25, percent=True),
+                button_dict('affected_ratio.est.+30d', 
+                            'Affected percent<br>(in 30 days)', 'Bluyl', 25, percent=True),
+                button_dict('Cases.total.per100k.est', 
+                            'Total cases<br>estimated per 100k', 'YlOrRd'),
                 button_dict('Cases.total.est', 'Total cases<br>(estimated)', 'YlOrRd'),
             ],
             direction="down",
@@ -149,24 +163,28 @@ fig.update_layout(
             showactive=True, x=0.23, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
-                button_dict('infection_rate', 'Infection rate<br>percent (blue-red)', 'Bluered', 10, percent=True),
-                button_dict('infection_rate', 'Infection rate<br>percent', 'YlOrRd', 33, percent=True),                
-                button_dict('Cases.new.per100k.est', 'New cases<br>estimated per 100k', 'YlOrRd'),
+                button_dict('infection_rate', 
+                            'Infection rate<br>percent (blue-red)', 'Bluered', 10, percent=True),
+                button_dict('infection_rate', 
+                            'Infection rate<br>percent', 'YlOrRd', 33, percent=True),                
+                button_dict('Cases.new.per100k.est', 
+                            'New cases<br>estimated per 100k', 'YlOrRd'),
                 button_dict('Cases.new.est', 'New cases<br>(estimated)', 'YlOrRd'),
             ],
             direction="down",
             pad={"r": 10, "t": 10},
-            showactive=True, x=0.43, xanchor="left", y=1.1, yanchor="top"),
+            showactive=True, x=0.45, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
                 button_dict('Deaths.total.per100k', 'Deaths<br>per 100k', 'Reds'),
                 button_dict('Deaths.total', 'Deaths<br>Total', 'Reds'),
-                button_dict('lagged_fatality_rate', 'Fatality rate %<br>(lagged)', 'PuRd', 20, percent=True),
+                button_dict('lagged_fatality_rate', 
+                            'Fatality rate %<br>(lagged)', 'PuRd', 20, percent=True),
                 
             ],
             direction="down",
             pad={"r": 10, "t": 10},
-            showactive=True, x=0.65, xanchor="left", y=1.1, yanchor="top"),
+            showactive=True, x=0.67, xanchor="left", y=1.1, yanchor="top"),
     ])
 
 # # World map (choose column)
