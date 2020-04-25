@@ -47,7 +47,7 @@ Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isofo
 
 #hide
 geo_helper = covid_helpers.GeoMap
-df_geo = geo_helper.make_geo_df(df_all, cases_filter=2000, deaths_filter=20)
+df_geo = geo_helper.make_geo_df(df_all, cases_filter=1000, deaths_filter=20)
 fig = geo_helper.make_map_figure(df_geo);
 
 #hide
@@ -161,7 +161,7 @@ fig.update_layout(
     ])
 
 # # World map (choose column)
-# > Includes only countries with at least 2000 reported cases or at least 20 reported deaths.
+# > Includes only countries with at least 1000 reported cases or at least 20 reported deaths.
 #
 # For details per country see [main notebook](/pages/covid-progress-projections/)
 

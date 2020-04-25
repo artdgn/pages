@@ -469,7 +469,7 @@ class OverviewData:
         return dfs
 
     @classmethod
-    def filter_df(cls, df, cases_filter=2000, deaths_filter=20, population_filter=3e5):
+    def filter_df(cls, df, cases_filter=1000, deaths_filter=20, population_filter=3e5):
         df = df.rename(index={'Bosnia and Herzegovina': 'Bosnia',
                               'United Arab Emirates': 'UAE'})
         return df[((df['Cases.total'] > cases_filter) |
@@ -572,7 +572,7 @@ class GeoMap:
         return world
 
     @classmethod
-    def make_geo_df(cls, df_all, cases_filter=2000, deaths_filter=20):
+    def make_geo_df(cls, df_all, cases_filter=1000, deaths_filter=20):
         world = cls.get_world_geo_df()
 
         df_plot = (df_all.reset_index().rename(columns={'Country/Region': 'country'}))
