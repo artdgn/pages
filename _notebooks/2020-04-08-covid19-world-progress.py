@@ -72,37 +72,38 @@ import altair as alt
 alt.data_transformers.disable_max_rows()
 
 alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
-    x="day:Q",
-    y=alt.Y("Infected-total:Q", stack=True),
+    x=alt.X('day:Q', title='number of days in future'),
+    y=alt.Y("Infected-min-total:Q", stack=True, title="Number of people"),
     color=alt.Color("Country/Region:N", legend=None),
     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed'],    
 ).interactive()\
 .properties(width=650, height=340)\
-.properties(title='Infected')\
+.properties(title='Actively infected (conservative estimate)')\
 .configure_title(fontSize=20)
 # -
 
 #hide_input
 alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
-    x="day:Q",
-    y=alt.Y("Removed-total:Q", stack=True),
+    x=alt.X('day:Q', title='number of days in future'),
+    y=alt.Y("Removed-min-total:Q", stack=True, title="Number of people"),
     color=alt.Color("Country/Region:N", legend=None),
     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
 ).interactive()\
 .properties(width=650, height=340)\
-.properties(title='Removed (recovered / dead)')\
+.properties(title='Recovered or dead (conservative estimate)')\
 .configure_title(fontSize=20)
 
 #hide_input
 alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
-    x="day:O",
-    y=alt.Y("Susceptible-total:Q", stack=True, 
-            scale=alt.Scale(domain=(0, df_tot[df_tot['day']==1]['Susceptible-total'].sum()))),
+    x=alt.X('day:Q', title='number of days in future'),
+    y=alt.Y("Susceptible-max-total:Q", stack=True, 
+            scale=alt.Scale(domain=(0, df_tot[df_tot['day']==1]['Susceptible-total'].sum())),
+           title='Number of people'),
     color=alt.Color("Country/Region:N", legend=None),
     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
 ).interactive()\
 .properties(width=650, height=340)\
-.properties(title='Susceptible (not yet infected)')\
+.properties(title='Susceptible or not yet infected (conservative estimate)')\
 .configure_title(fontSize=20)
 
 # ## Appendix and Methodology
