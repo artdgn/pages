@@ -7,7 +7,7 @@
 -----------
 
 #### View at:
-# https://artdgn.github.io/notebook-posts/
+# https://artdgn.github.io/
 
 -----------
 

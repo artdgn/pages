@@ -15,15 +15,14 @@
 # ---
 
 # + [markdown] papermill={"duration": 0.013695, "end_time": "2020-03-27T06:31:15.895652", "exception": false, "start_time": "2020-03-27T06:31:15.881957", "status": "completed"} tags=[]
-# # World progress projections (updated daily)
+# # World progress projections
 # > Visualising stacked projections for all countries.
 #
 # - comments: true
-# - categories: [overview]
 # - author: <a href=https://github.com/artdgn/>artdgn</a>
 # - permalink: /covid-world-progress/
 # - image: images/world-infected.png
-# - toc: true
+# - toc: false
 # - hide: false
 # -
 
@@ -44,9 +43,9 @@ from IPython.display import display, Markdown
 Markdown(f"***Based on data up to: \
          {pd.to_datetime(covid_helpers.OverviewData.dt_today).date().isoformat()}***")
 
-# ## For details per country see [main notebook](/notebook-posts/covid-progress-projections/)
+# ## For details per country see [main notebook](/covid-progress-projections/)
 
-# ## World model plots (all countries stacked)
+# ## World projections from country models (all countries stacked)
 # The outputs of the models for all countries in stacked plots.
 # > Tip: Hover the mouse of the area to see which country is which and the countries S/I/R ratios at that point. 
 #
@@ -108,4 +107,4 @@ alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
 
 # ## Appendix and Methodology
 # <a id='appendix'></a>
-# [See appendix in main notebook](/notebook-posts/covid-progress-projections/#appendix)
+# [See appendix in main notebook](/covid-progress-projections/#appendix)

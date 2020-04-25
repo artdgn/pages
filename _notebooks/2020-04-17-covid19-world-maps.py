@@ -15,15 +15,14 @@
 # ---
 
 # + [markdown] papermill={"duration": 0.013695, "end_time": "2020-03-27T06:31:15.895652", "exception": false, "start_time": "2020-03-27T06:31:15.881957", "status": "completed"} tags=[]
-# # World maps (updated daily)
+# # World maps
 # > Visualising projections and estimations on maps
 #
 # - comments: true
-# - categories: [overview, maps]
 # - author: <a href=https://github.com/Junikab/>Junikab</a>, <a href=https://github.com/artdgn/>artdgn</a>
 # - permalink: /covid-world-maps/
 # - image: images/world_map.png
-# - toc: true
+# - toc: false
 # - sticky_rank: 1
 # - hide: false
 # -
@@ -48,7 +47,7 @@ Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isofo
 
 #hide
 geo_helper = covid_helpers.GeoMap
-df_geo = geo_helper.make_geo_df(df_all, cases_filter=500, deaths_filter=20)
+df_geo = geo_helper.make_geo_df(df_all, cases_filter=2000, deaths_filter=20)
 fig = geo_helper.make_map_figure(df_geo);
 
 #hide
@@ -162,9 +161,9 @@ fig.update_layout(
     ])
 
 # # World map (choose column)
-# > Includes only countries with at least 500 reported cases or at least 20 reported deaths.
+# > Includes only countries with at least 2000 reported cases or at least 20 reported deaths.
 #
-# For details per country see [main notebook](/notebook-posts/covid-progress-projections/)
+# For details per country see [main notebook](/covid-progress-projections/)
 
 # > Tip: Select columns to show on map to from the dropdown menus. The map is zoomable and draggable.
 
@@ -174,4 +173,4 @@ HTML(fig.to_html())
 
 # ## Appendix
 # <a id='appendix'></a>
-# [See appendix in main notebook](/notebook-posts/covid-progress-projections/#appendix)
+# [See appendix in main notebook](/covid-progress-projections/#appendix)

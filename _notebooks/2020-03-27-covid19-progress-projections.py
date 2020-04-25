@@ -15,11 +15,10 @@
 # ---
 
 # + [markdown] papermill={"duration": 0.013695, "end_time": "2020-03-27T06:31:15.895652", "exception": false, "start_time": "2020-03-27T06:31:15.881957", "status": "completed"} tags=[]
-# # ICU Demand and Total Affected Population projections per Country (updated daily)
+# # ICU Demand and Total Affected Population projections per Country
 # > Modeling current and future ICU demand and percentage of affected population. 
 #
 # - comments: true
-# - categories: [overview]
 # - author: <a href=https://github.com/artdgn/>artdgn</a>
 # - permalink: /covid-progress-projections/
 # - image: images/icu-need.png
@@ -154,18 +153,20 @@ df_pretty[cols.keys()].rename(cols, axis=1).style\
 # -
 
 
+# ## For world maps with all projections: [world maps notebook](/covid-world-maps/)
+
 # <a id='examples'></a>
 #
 # ## Interactive plot of Model predictions
 #
 # > Tip: Choose a country from the drop-down menu to see the calculations used in the tables above and the dynamics of the model.
 #
-# > Note: For stacked plots of all countries see [world plots notebook](/notebook-posts/covid-world-progress/)
+# > Note: For stacked plots of all countries see [world plots notebook](/covid-world-progress/)
 
 #hide_input
 _, debug_dfs = helper.table_with_projections(debug_dfs=True)
 df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
-covid_helpers.altair_sir_plot(df_alt, df['needICU.per100k.+14d'].idxmax())
+covid_helpers.altair_sir_plot(df_alt, df['needICU.per100k.+14d.min'].idxmax())
 
 # ## Full table with more details
 #  - Contains reported data, estimations, projections, and numbers relative to population.

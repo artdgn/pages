@@ -10,9 +10,9 @@ layout: default
     {%- endif -%}
     <p class="post-meta post-meta-title">
       {%- assign date_format = site.minima.date_format | default: "%b %-d, %Y" -%}
-      <time class="dt-published" datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">
-        {{ page.date | date: date_format }}
-      </time>
+<!--      <time class="dt-published" datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">-->
+<!--        {{ page.date | date: date_format }}-->
+<!--      </time>-->
       {%- if page.modified_date -%}
         ~ 
         {%- assign mdate = page.modified_date | date_to_xmlschema -%}
@@ -27,7 +27,6 @@ layout: default
             {%- if forloop.last == false %}, {% endif -%}
         {% endfor %}
       {%- endif %}
-       • {% include reading_time.html -%}
     </p>
 
     {% if page.categories.size > 0 and site.show_tags %}
