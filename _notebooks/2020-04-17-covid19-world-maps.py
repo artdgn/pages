@@ -47,150 +47,125 @@ from IPython.display import Markdown
 Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isoformat()}***")
 
 #hide
-df_plot = (df_all.reset_index().rename(columns={'Country/Region': 'country'}))
-
-# +
-#hide
-### geopandas
-import geopandas
-
-shapefile = 'data_files/110m_countries/ne_110m_admin_0_countries.shp'
-world = geopandas.read_file(shapefile)[['ADMIN', 'ADM0_A3', 'geometry']]
-world.columns = ['country', 'iso_code', 'geometry']
-world = world[world['country'] != "Antarctica"].copy()
-world['country'] = world['country'].map({
-    'United States of America': 'US',
-    'Taiwan': 'Taiwan*',
-    'Palestine': 'West Bank and Gaza',
-    'Côte d\'Ivoire': 'Cote d\'Ivoire',
-    'Bosnia and Herz.': 'Bosnia and Herzegovina',
-}).fillna(world['country'])
-
-df_plot_geo = pd.merge(world, df_plot, on='country', how='left')
-# df_plot_geo.plot(column='needICU.per100k');
-
-# +
-#hide
-import plotly.graph_objects as go
-import plotly.express as px
-
-fig = go.FigureWidget(
-    data=go.Choropleth(
-        locations=df_plot_geo['iso_code'],
-        z=df_plot_geo['needICU.per100k'].fillna(0),
-        zmin=0,
-        zmax=10,
-        text=df_plot_geo['country'],
-        colorscale='sunsetdark',
-        autocolorscale=False,
-        marker_line_color='darkgray',
-        marker_line_width=0.5,
-        colorbar_title='ICU need<br>(current)',
-    ))
-
-fig.update_layout(
-    width=800,
-    height=450,
-    autosize=True,
-    margin=dict(t=0, b=0, l=0, r=0),
-    template="plotly_white",
-    geo=dict(
-        showframe=False,
-        projection_type='natural earth',
-        resolution=110,
-        showcoastlines=True, coastlinecolor="RebeccaPurple",
-        showland=True, landcolor="Grey",
-        showocean=True, oceancolor="LightBlue",
-        showlakes=True, lakecolor="LightBlue",
-        fitbounds="locations"
-    )
-);
-
-
-# -
-
-#hide
-def button_dict(col, title, colorscale, scale_max=None, percent=False):    
-    series = df_plot_geo[col].fillna(0)
-#     series_text = (df_plot_geo['country'] + '<br>' + 
-#                    (series.apply('{:.1%}'.format) if percent 
-#                    else series.apply('{:.2f}'.format)))    
-    series *= 100 if percent else 1
-
-    scale_obj = getattr(px.colors.sequential, colorscale)
-    scale_arg = [[(i - 1) / (len(scale_obj) - 1), c] for i, c in enumerate(scale_obj, start=1)]
-
-    max_arg = series.max() if scale_max is None else min(scale_max, series.max())
-
-    return dict(args=[{'z': [series.to_list()],
-#                        'text': [series_text.to_list()],
-                       'zmax': [max_arg],
-                       'colorbar': [{'title': {'text': title}}],
-                       'colorscale': [scale_arg]}],
-                label=title, method="restyle")
-
+geo_helper = covid_helpers.GeoMap
+df_geo = geo_helper.make_geo_df(df_all, cases_filter=500, deaths_filter=20)
+fig = geo_helper.make_map_figure(df_geo);
 
 #hide
 fig.update_layout(
     updatemenus=[
         dict(
             buttons=[
-                button_dict('needICU.per100k', 
-                            'ICU need<br>(current)', 'Sunsetdark', 10),
-                button_dict('needICU.per100k.+14d', 
-                            'ICU need<br>(in 14 days)', 'Sunsetdark', 10),
-                button_dict('needICU.per100k.+30d', 
-                            'ICU need<br>(in 30 days)', 'Sunsetdark', 10),
-                button_dict('icu_capacity_per100k', 'ICU Capacity', 'Blues'),
+                geo_helper.button_dict(
+                    df_geo['needICU.per100k'], 'ICU need<br>(current)', 
+                    colorscale='Sunsetdark', scale_max=10,
+                    subtitle='Estimated current ICU need per 100k population'),
+                geo_helper.button_dict(
+                    df_geo['needICU.per100k.+14d'],  'ICU need<br>(in 14 days)', 
+                    colorscale='Sunsetdark', scale_max=10,
+                    subtitle='Projected ICU need per 100k population in 14 days'),
+                geo_helper.button_dict(
+                    df_geo['needICU.per100k.+30d'],  'ICU need<br>(in 30 days)', 
+                    colorscale='Sunsetdark', scale_max=10,
+                    subtitle='Projected ICU need per 100k population in 30 days'),
+                geo_helper.button_dict(
+                    df_geo['icu_capacity_per100k'], 'ICU Capacity', colorscale='Blues',
+                    subtitle='ICU capacity per 100k population'),
             ],
             direction="down",
             pad={"r": 10, "t": 10},
-            showactive=True, x=0.05, xanchor="left", y=1.1, yanchor="top"),
+            showactive=True, x=0.07, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
-                button_dict('affected_ratio.est', 
-                            'Affected percent<br>(Current)', 'Bluyl', percent=True),
-                button_dict('affected_ratio.est.+14d', 
-                            'Affected percent<br>(in 14 days)', 'Bluyl', 25, percent=True),
-                button_dict('affected_ratio.est.+30d', 
-                            'Affected percent<br>(in 30 days)', 'Bluyl', 25, percent=True),
-                button_dict('Cases.total.per100k.est', 
-                            'Total cases<br>estimated per 100k', 'YlOrRd'),
-                button_dict('Cases.total.est', 'Total cases<br>(estimated)', 'YlOrRd'),
+                geo_helper.button_dict(
+                    df_geo['affected_ratio.est'], 'Affected percent<br>(Current)', 
+                    colorscale='Bluyl', percent=True,
+                    subtitle='Estimated current affected population percentage'),
+                geo_helper.button_dict(
+                    df_geo['affected_ratio.est.+14d'], 'Affected percent<br>(in 14 days)', 
+                    colorscale='Bluyl', scale_max=25, percent=True,
+                    subtitle='Projected affected population percentage in 14 days'),
+                geo_helper.button_dict(
+                    df_geo['affected_ratio.est.+30d'], 'Affected percent<br>(in 30 days)', 
+                    colorscale='Bluyl', scale_max=25, percent=True,
+                    subtitle='Projected affected population percentage in 30 days'),
+                geo_helper.button_dict(
+                    df_geo['Cases.total.per100k.est'], 'Total cases<br>estimated per 100k', 
+                    colorscale='YlOrRd',
+                    subtitle='Estimated total cases per 100k population'),
+                geo_helper.button_dict(
+                    df_geo['Cases.total.est'], 'Total cases<br>(estimated)', colorscale='YlOrRd',
+                    subtitle='Estimated total cases'),
+                geo_helper.button_dict(
+                    df_geo['Cases.total.per100k'], 'Total cases<br>reported per 100k', 
+                    colorscale='YlOrRd',
+                    subtitle='Reported total cases per 100k population'),
+                geo_helper.button_dict(
+                    df_geo['Cases.total'], 'Total cases<br>(reported)', colorscale='YlOrRd',
+                    subtitle='Reported total cases'),
             ],
             direction="down",
             pad={"r": 10, "t": 10},
-            showactive=True, x=0.23, xanchor="left", y=1.1, yanchor="top"),
+            showactive=True, x=0.24, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
-                button_dict('infection_rate', 
-                            'Infection rate<br>percent (blue-red)', 'Bluered', 10, percent=True),
-                button_dict('infection_rate', 
-                            'Infection rate<br>percent', 'YlOrRd', 33, percent=True),                
-                button_dict('Cases.new.per100k.est', 
-                            'New cases<br>estimated per 100k', 'YlOrRd'),
-                button_dict('Cases.new.est', 'New cases<br>(estimated)', 'YlOrRd'),
+                geo_helper.button_dict(
+                    df_geo['infection_rate'], 'Infection rate<br>percent (blue-red)',
+                    colorscale='Bluered', scale_max=10, percent=True,
+                    subtitle='Infection spread rate: over 5% (red) spreading, under 5% (blue) recovering'),
+                geo_helper.button_dict(
+                    df_geo['infection_rate'], 'Infection rate<br>percent', 
+                    colorscale='YlOrRd', scale_max=33, percent=True,
+                    subtitle='Infection spread rate (related to R0)'),
+                geo_helper.button_dict(
+                    df_geo['Cases.new.per100k.est'], 'New cases<br>estimated per 100k', 
+                    colorscale='YlOrRd',
+                    subtitle='Estimated new cases in last 5 days per 100k population'),
+                geo_helper.button_dict(
+                    df_geo['Cases.new.est'], 'New cases<br>(estimated)', 
+                    colorscale='YlOrRd',
+                    subtitle='Estimated new cases in last 5 days'),
+                geo_helper.button_dict(
+                    df_geo['Cases.new.per100k'], 'New cases<br>reported per 100k', 
+                    colorscale='YlOrRd',
+                    subtitle='Reported new cases in last 5 days per 100k population'),
+                geo_helper.button_dict(
+                    df_geo['Cases.new'], 'New cases<br>(reported)', 
+                    colorscale='YlOrRd',
+                    subtitle='Reported new cases in last 5 days'),
             ],
             direction="down",
             pad={"r": 10, "t": 10},
             showactive=True, x=0.45, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
-                button_dict('Deaths.total.per100k', 'Deaths<br>per 100k', 'Reds'),
-                button_dict('Deaths.total', 'Deaths<br>Total', 'Reds'),
-                button_dict('lagged_fatality_rate', 
-                            'Fatality rate %<br>(lagged)', 'PuRd', 20, percent=True),
-                
+                geo_helper.button_dict(
+                    df_geo['Deaths.total.per100k'], 'Deaths<br>per 100k', colorscale='Reds',
+                    subtitle='Total deaths per 100k population'),
+                geo_helper.button_dict(
+                    df_geo['Deaths.total'], 'Deaths<br>Total', colorscale='Reds',
+                    subtitle='Total deaths'),
+                geo_helper.button_dict(
+                    df_geo['Deaths.new.per100k'], 'New deaths<br>per 100k', colorscale='Reds',
+                    subtitle='New deaths in last 5 days per 100k population'),
+                geo_helper.button_dict(
+                    df_geo['Deaths.new'], 'New deaths<br>total', colorscale='Reds',
+                    subtitle='New deaths in last 5 days'),
+                geo_helper.button_dict(
+                    df_geo['lagged_fatality_rate'], 'Fatality rate %<br>(lagged)', 
+                    colorscale='Reds', scale_max=20, percent=True,
+                    subtitle='Reported fatality rate (relative to reported cases 8 days ago)'),
             ],
             direction="down",
             pad={"r": 10, "t": 10},
-            showactive=True, x=0.67, xanchor="left", y=1.1, yanchor="top"),
+            showactive=True, x=0.66, xanchor="left", y=1.1, yanchor="top"),
     ])
 
 # # World map (choose column)
+# > Includes only countries with at least 500 reported cases or at least 20 reported deaths.
 #
 # For details per country see [main notebook](/notebook-posts/covid-progress-projections/)
-#
+
 # > Tip: Select columns to show on map to from the dropdown menus. The map is zoomable and draggable.
 
 #hide_input

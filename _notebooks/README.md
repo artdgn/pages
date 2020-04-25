@@ -1,11 +1,14 @@
-# Auto-convert Jupyter Notebooks To Posts
+# Auto-convert Jupyter Notebooks and notebook-like py files To Posts
 
-[`fastpages`](https://github.com/fastai/fastpages) will automatically convert [Jupyter](https://jupyter.org/) Notebooks saved into this directory as blog posts!
+Two options are supported:
+1. Notebook files (`.ipynb`)
+2. Python files (`.py`) that are convertible to notebooks (via [jupytext](https://github.com/mwouts/jupytext))
 
-You must save your notebook with the naming convention `YYYY-MM-DD-*.ipynb`.  Examples of valid filenames are:
+You must save your notebook or python file with the naming convention `YYYY-MM-DD-*`.  Examples of valid filenames are:
 
 ```shell
 2020-01-28-My-First-Post.ipynb
+2020-01-28-My-First-Post.py
 2012-09-12-how-to-write-a-blog.ipynb
 ```
 

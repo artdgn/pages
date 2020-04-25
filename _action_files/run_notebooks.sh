@@ -7,6 +7,7 @@ cd $notebook_dir
 
 ERRORS=""
 
+# convert py files to notebooks
 for file in 20*.py
 do
     if jupytext -o "${file%.*}.ipynb" "${file%.*}.py"; then
@@ -18,6 +19,7 @@ do
     fi
 done
 
+# run all notebooks
 for file in *.ipynb
 do
     if papermill --kernel python3 "${file}" "${file}"; then

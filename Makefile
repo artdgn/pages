@@ -73,9 +73,9 @@ jupyter: .venv
 	$(VENV_ACTIVATE); \
 	jupyter notebook
 
-update-notebooks: .venv
+notebooks: .venv
 	$(VENV_ACTIVATE); \
 	./_action_files/run_notebooks.sh ./_notebooks
 
-update-server: .venv stop update-notebooks server
+update-server: .venv stop notebooks server
 

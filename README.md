@@ -23,6 +23,6 @@ Here I can experiment a bit more.
 
 ### Local development:
 - Install in .venv: `make install`
-- Update / create local notebooks from `.py` files: `make update-notebooks` 
+- Update / create local notebooks from `.py` files: `make notebooks` 
 - Run jupyter notebook: `make jupyter` 
 - Run jekyll (the blog server): `make server`

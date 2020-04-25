@@ -548,3 +548,103 @@ class PandasStyling:
             ± <font size=1><i>{r[err_col]:.1%}</i></font>", axis=1)
         s[2 * df[err_col] > df[val_col]] = '<font size=1><i>noisy data</i></font>'
         return s
+
+
+class GeoMap:
+
+    @classmethod
+    def get_world_geo_df(cls):
+        import geopandas
+
+        shapefile = 'data_files/110m_countries/ne_110m_admin_0_countries.shp'
+
+        world = geopandas.read_file(shapefile)[['ADMIN', 'ADM0_A3', 'geometry']]
+        world.columns = ['country', 'iso_code', 'geometry']
+        world = world[world['country'] != "Antarctica"].copy()
+        world['country'] = world['country'].map({
+            'United States of America': 'US',
+            'Taiwan': 'Taiwan*',
+            'Palestine': 'West Bank and Gaza',
+            'Côte d\'Ivoire': 'Cote d\'Ivoire',
+            'Bosnia and Herz.': 'Bosnia and Herzegovina',
+        }).fillna(world['country'])
+        return world
+
+    @classmethod
+    def make_geo_df(cls, df_all, cases_filter=500, deaths_filter=20):
+        world = cls.get_world_geo_df()
+
+        df_plot = (df_all.reset_index().rename(columns={'Country/Region': 'country'}))
+        df_plot_geo = pd.merge(world, df_plot, on='country', how='left')
+
+        df_plot_geo = df_plot_geo[((df_plot_geo['Cases.total'] >= cases_filter)
+                                   | (df_plot_geo['Deaths.total'] >= deaths_filter))]
+        return df_plot_geo
+
+    @classmethod
+    def make_map_figure(cls,
+                        df_plot_geo,
+                        col='needICU.per100k.+14d',
+                        title='ICU need<br>(in 14 days)',
+                        subtitle='Projected ICU need per 100k population in 14 days'):
+        import plotly.graph_objects as go
+
+        fig = go.FigureWidget(
+            data=go.Choropleth(
+                locations=df_plot_geo['iso_code'],
+                z=df_plot_geo[col].fillna(float('nan')),
+                zmin=0,
+                zmax=10,
+                text=df_plot_geo['country'],
+                colorscale='sunsetdark',
+                autocolorscale=False,
+                marker_line_color='#9fa8ad',
+                marker_line_width=0.5,
+                colorbar_title=title,
+            ))
+
+        fig.update_layout(
+            title={'text': f"<b>Map of</b>: {subtitle}", 'y': 0.875, 'x': 0.005},
+            annotations=[
+                dict(text="Data<br>choice:", showarrow=False, x=0.005, y=1.075, yref="paper", align="left")
+            ],
+            width=800,
+            height=450,
+            autosize=True,
+            margin=dict(t=0, b=0, l=0, r=0),
+            template="plotly_white",
+            geo=dict(
+                showframe=False,
+                projection_type='natural earth',
+                resolution=110,
+                showcoastlines=True, coastlinecolor="#c4cace",
+                showland=True, landcolor="#d8d8d8",
+                showocean=True, oceancolor="#d2e9f7",
+                showlakes=True, lakecolor="#d2e9f7",
+                fitbounds="locations"
+            )
+        )
+        return fig
+
+    @staticmethod
+    def button_dict(series, title, colorscale, scale_max=None, percent=False, subtitle=None):
+        import plotly.express as px
+
+        series = series.fillna(float('nan'))
+        series *= 100 if percent else 1
+        subtitle = subtitle if subtitle is not None else title.replace('<br>', ' ')
+
+        scale_obj = getattr(px.colors.sequential, colorscale)
+        scale_arg = [[(i - 1) / (len(scale_obj) - 1), c]
+                     for i, c in enumerate(scale_obj, start=1)]
+
+        max_arg = series.max() if scale_max is None else min(scale_max, series.max())
+
+        return dict(args=[{'z': [series.to_list()],
+                           'zmax': [max_arg],
+                           'colorbar': [{'title': {'text': title}}],
+                           'colorscale': [scale_arg],
+                           },
+                          {'title': {'text': f"<b>Map of</b>: {subtitle}",
+                                     'y': 0.875, 'x': 0.005}}],
+                    label=title, method="update")
