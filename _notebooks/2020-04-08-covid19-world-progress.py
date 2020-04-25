@@ -43,7 +43,7 @@ from IPython.display import display, Markdown
 Markdown(f"***Based on data up to: \
          {pd.to_datetime(covid_helpers.OverviewData.dt_today).date().isoformat()}***")
 
-# ## For details per country see [main notebook](/covid-progress-projections/)
+# ## For details per country see [main notebook](/pages/covid-progress-projections/)
 
 # ## World projections from country models (all countries stacked)
 # The outputs of the models for all countries in stacked plots.
@@ -107,4 +107,4 @@ alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
 
 # ## Appendix and Methodology
 # <a id='appendix'></a>
-# [See appendix in main notebook](/covid-progress-projections/#appendix)
+# [See appendix in main notebook](/pages/covid-progress-projections/#appendix)

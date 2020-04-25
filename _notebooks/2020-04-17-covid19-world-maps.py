@@ -163,7 +163,7 @@ fig.update_layout(
 # # World map (choose column)
 # > Includes only countries with at least 2000 reported cases or at least 20 reported deaths.
 #
-# For details per country see [main notebook](/covid-progress-projections/)
+# For details per country see [main notebook](/pages/covid-progress-projections/)
 
 # > Tip: Select columns to show on map to from the dropdown menus. The map is zoomable and draggable.
 
@@ -173,4 +173,4 @@ HTML(fig.to_html())
 
 # ## Appendix
 # <a id='appendix'></a>
-# [See appendix in main notebook](/covid-progress-projections/#appendix)
+# [See appendix in main notebook](/pages/covid-progress-projections/#appendix)

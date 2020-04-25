@@ -153,7 +153,7 @@ df_pretty[cols.keys()].rename(cols, axis=1).style\
 # -
 
 
-# ## For world maps with all projections: [world maps notebook](/covid-world-maps/)
+# ## For world maps with all projections: [world maps notebook](/pages/covid-world-maps/)
 
 # <a id='examples'></a>
 #
@@ -161,7 +161,7 @@ df_pretty[cols.keys()].rename(cols, axis=1).style\
 #
 # > Tip: Choose a country from the drop-down menu to see the calculations used in the tables above and the dynamics of the model.
 #
-# > Note: For stacked plots of all countries see [world plots notebook](/covid-world-progress/)
+# > Note: For stacked plots of all countries see [world plots notebook](/pages/covid-world-progress/)
 
 #hide_input
 _, debug_dfs = helper.table_with_projections(debug_dfs=True)

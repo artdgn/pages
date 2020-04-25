@@ -16,7 +16,7 @@ jobs:
       (github.event_name == 'schedule' || github.event_name == 'push' ||
        (github.event.issue.title == '[workflow] Refresh Notebooks'  &&
         github.actor == 'artdgn' && github.event_name == 'issues'))
-      && github.repository == 'artdgn/notebook-posts'
+      && github.repository == 'artdgn/pages'
     runs-on: ubuntu-latest
     steps:
   
@@ -84,7 +84,7 @@ jobs:
             owner: context.repo.owner,
             repo: context.repo.repo,
             title: "Error updating notebooks",
-            body: `These are the notebooks that failed to update properly: \n${err}\n\n See run [${run_id}](https://github.com/artdgn/notebook-posts/actions/runs/${run_id}) for more details.`
+            body: `These are the notebooks that failed to update properly: \n${err}\n\n See run [${run_id}](https://github.com/artdgn/pages/actions/runs/${run_id}) for more details.`
           })
       env:
         ERROR_STRING: ${{ steps.update_nb.outputs.error_str }}
@@ -138,7 +138,7 @@ jobs:
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: `An error occurred when attempting to refresh one or more of the notebooks in run [${run_id}](https://github.com/artdgn/notebook-posts/actions/runs/${run_id}). These are the notebooks that failed to update properly: \n${err}`
+            body: `An error occurred when attempting to refresh one or more of the notebooks in run [${run_id}](https://github.com/artdgn/pages/actions/runs/${run_id}). These are the notebooks that failed to update properly: \n${err}`
           })
       env:
         ERROR_STRING: ${{ steps.update_nb.outputs.error_str }}
@@ -155,7 +155,7 @@ jobs:
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: `An workflow error occurred in run [${run_id}](https://github.com/artdgn/notebook-posts/actions/runs/${run_id}) when attempting to refresh the notebooks.`
+            body: `An workflow error occurred in run [${run_id}](https://github.com/artdgn/pages/actions/runs/${run_id}) when attempting to refresh the notebooks.`
           })
       env:
         RUN_ID: ${{ github.run_id	 }}
