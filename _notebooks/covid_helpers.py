@@ -619,7 +619,7 @@ class GeoMap:
                 autocolorscale=False,
                 marker_line_color='#9fa8ad',
                 marker_line_width=0.5,
-                colorbar_title=title,
+                colorbar_title=f'<b>{title}</b>',
             ))
 
         fig.update_layout(
@@ -674,7 +674,7 @@ class GeoMap:
         return dict(args=[
             {'z': [series.to_list()],
              'zmax': [max_arg],
-             'colorbar': [{'title': {'text': title}}],
+             'colorbar': [{'title': {'text': f'<b>{title}</b>'}}],
              'colorscale': [scale_arg],
              'customdata': [cls.error_series_to_string_list(
                  series, err_series=err_series, percent=percent)]

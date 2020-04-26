@@ -71,9 +71,9 @@ fig.update_layout(
                     df_geo['icu_capacity_per100k'], 'ICU Capacity', colorscale='Blues',
                     subtitle='ICU capacity per 100k population'),
             ],
-            direction="down",
+            direction="down", bgcolor='#efdaee',
             pad={"r": 10, "t": 10},
-            showactive=True, x=0.07, xanchor="left", y=1.1, yanchor="top"),
+            showactive=False, x=0.07, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
                 geo_helper.button_dict(
@@ -105,9 +105,9 @@ fig.update_layout(
                     df_geo['Cases.total'], 'Total cases<br>(reported)', colorscale='YlOrRd',
                     subtitle='Reported total cases'),
             ],
-            direction="down",
+            direction="down", bgcolor='#dceae1',
             pad={"r": 10, "t": 10},
-            showactive=True, x=0.24, xanchor="left", y=1.1, yanchor="top"),
+            showactive=False, x=0.24, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
                 geo_helper.button_dict(
@@ -137,9 +137,9 @@ fig.update_layout(
                     colorscale='YlOrRd',
                     subtitle='Reported new cases in last 5 days'),
             ],
-            direction="down",
+            direction="down", bgcolor='#efe9da',
             pad={"r": 10, "t": 10},
-            showactive=True, x=0.45, xanchor="left", y=1.1, yanchor="top"),
+            showactive=False, x=0.46, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
                 geo_helper.button_dict(
@@ -159,9 +159,9 @@ fig.update_layout(
                     colorscale='Reds', scale_max=20, percent=True,
                     subtitle='Reported fatality rate (relative to reported cases 8 days ago)'),
             ],
-            direction="down",
+            direction="down", bgcolor='#efdbda',
             pad={"r": 10, "t": 10},
-            showactive=True, x=0.66, xanchor="left", y=1.1, yanchor="top"),
+            showactive=False, x=0.68, xanchor="left", y=1.1, yanchor="top"),
     ])
 
 # # World map (choose column)
