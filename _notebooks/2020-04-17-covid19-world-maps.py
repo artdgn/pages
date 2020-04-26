@@ -14,7 +14,6 @@
 #     name: python3
 # ---
 
-# + [markdown] papermill={"duration": 0.013695, "end_time": "2020-03-27T06:31:15.895652", "exception": false, "start_time": "2020-03-27T06:31:15.881957", "status": "completed"} tags=[]
 # # World maps
 # > Visualising projections and estimations on maps
 #
@@ -25,11 +24,10 @@
 # - toc: false
 # - sticky_rank: 1
 # - hide: false
-# -
 
 # > Important: This dashboard contains the results of a predictive model that was not built by an epidimiologist.
 
-# + papermill={"duration": 0.330834, "end_time": "2020-03-27T06:31:16.261108", "exception": false, "start_time": "2020-03-27T06:31:15.930274", "status": "completed"} tags=[]
+# +
 #hide
 import pandas as pd
 import covid_helpers
@@ -48,7 +46,7 @@ Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isofo
 #hide
 geo_helper = covid_helpers.GeoMap
 df_geo = geo_helper.make_geo_df(df_all, cases_filter=1000, deaths_filter=20)
-fig = geo_helper.make_map_figure(df_geo);
+fig = geo_helper.make_map_figure(df_geo)
 
 #hide
 fig.update_layout(
@@ -62,11 +60,13 @@ fig.update_layout(
                 geo_helper.button_dict(
                     df_geo['needICU.per100k.+14d'],  'ICU need<br>(in 14 days)', 
                     colorscale='Sunsetdark', scale_max=10,
-                    subtitle='Projected ICU need per 100k population in 14 days'),
+                    subtitle='Projected ICU need per 100k population in 14 days',
+                    err_series=df_geo['needICU.per100k.+14d.err']),
                 geo_helper.button_dict(
                     df_geo['needICU.per100k.+30d'],  'ICU need<br>(in 30 days)', 
                     colorscale='Sunsetdark', scale_max=10,
-                    subtitle='Projected ICU need per 100k population in 30 days'),
+                    subtitle='Projected ICU need per 100k population in 30 days',
+                    err_series=df_geo['needICU.per100k.+30d.err']),
                 geo_helper.button_dict(
                     df_geo['icu_capacity_per100k'], 'ICU Capacity', colorscale='Blues',
                     subtitle='ICU capacity per 100k population'),
@@ -83,11 +83,13 @@ fig.update_layout(
                 geo_helper.button_dict(
                     df_geo['affected_ratio.est.+14d'], 'Affected percent<br>(in 14 days)', 
                     colorscale='Bluyl', scale_max=25, percent=True,
-                    subtitle='Projected affected population percentage in 14 days'),
+                    subtitle='Projected affected population percentage in 14 days',
+                    err_series=df_geo['affected_ratio.est.+14d.err']),
                 geo_helper.button_dict(
                     df_geo['affected_ratio.est.+30d'], 'Affected percent<br>(in 30 days)', 
                     colorscale='Bluyl', scale_max=25, percent=True,
-                    subtitle='Projected affected population percentage in 30 days'),
+                    subtitle='Projected affected population percentage in 30 days',
+                    err_series=df_geo['affected_ratio.est.+30d.err']),
                 geo_helper.button_dict(
                     df_geo['Cases.total.per100k.est'], 'Total cases<br>estimated per 100k', 
                     colorscale='YlOrRd',
@@ -111,11 +113,13 @@ fig.update_layout(
                 geo_helper.button_dict(
                     df_geo['infection_rate'], 'Infection rate<br>percent (blue-red)',
                     colorscale='Bluered', scale_max=10, percent=True,
-                    subtitle='Infection spread rate: over 5% (red) spreading, under 5% (blue) recovering'),
+                    subtitle='Infection spread rate: over 5% (red) spreading, under 5% (blue) recovering',
+                    err_series=df_geo['growth_rate_std']),
                 geo_helper.button_dict(
                     df_geo['infection_rate'], 'Infection rate<br>percent', 
                     colorscale='YlOrRd', scale_max=33, percent=True,
-                    subtitle='Infection spread rate (related to R0)'),
+                    subtitle='Infection spread rate (related to R0)',
+                    err_series=df_geo['growth_rate_std']),
                 geo_helper.button_dict(
                     df_geo['Cases.new.per100k.est'], 'New cases<br>estimated per 100k', 
                     colorscale='YlOrRd',
@@ -163,7 +167,8 @@ fig.update_layout(
 # # World map (choose column)
 # > Includes only countries with at least 1000 reported cases or at least 20 reported deaths.
 #
-# For details per country see [main notebook](/pages/covid-progress-projections/)
+# - For details per country see [main notebook](/pages/covid-progress-projections/)
+# - New cases and new deaths refer to cases or deaths in the last 5 days.
 
 # > Tip: Select columns to show on map to from the dropdown menus. The map is zoomable and draggable.
 

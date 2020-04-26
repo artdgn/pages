@@ -41,6 +41,7 @@ class SourceData:
 class WordPopulation:
     csv_path = os.path.join(data_folder, 'world_population.csv')
     page = 'https://www.worldometers.info/world-population/population-by-country/'
+
     # alternative https://en.wikipedia.org/wiki/List_of_countries_by_population_%28United_Nations%29 table 5
 
     @classmethod
@@ -590,13 +591,30 @@ class GeoMap:
                         subtitle='Projected ICU need per 100k population in 14 days'):
         import plotly.graph_objects as go
 
+        df_plot_geo['text'] = (df_plot_geo.apply(
+            lambda r: (
+                "<br>"
+                f"Cases (reported): {r['Cases.total']:,.0f} (+<b>{r['Cases.new']:,.0f}</b>)<br>"
+                f"Cases (estimated): {r['Cases.total.est']:,.0f} (+<b>{r['Cases.new.est']:,.0f}</b>)<br>"
+                f"Affected percent: <b>{r['affected_ratio.est']:.1%}</b><br>"
+                f"Infection rate: <b>{r['infection_rate']:.1%}</b> ± {r['growth_rate_std']:.1%}<br>"
+                f"Deaths: {r['Deaths.total']:,.0f} (+<b>{r['Deaths.new']:,.0f}</b>)<br>"
+            ), axis=1))
+
         fig = go.FigureWidget(
             data=go.Choropleth(
                 locations=df_plot_geo['iso_code'],
                 z=df_plot_geo[col].fillna(float('nan')),
                 zmin=0,
                 zmax=10,
-                text=df_plot_geo['country'],
+                text=df_plot_geo['text'],
+                ids=df_plot_geo['country'],
+                customdata=cls.error_series_to_string_list(
+                    series=df_plot_geo[col],
+                    err_series=None if '+' not in col else df_plot_geo[col + '.err'],
+                    percent=('rate' in col or 'ratio' in col)
+                ),
+                hovertemplate="<b>%{id}</b>:<br><b>%{z:.1f}%{customdata}</b><br>%{text}<extra></extra>",
                 colorscale='sunsetdark',
                 autocolorscale=False,
                 marker_line_color='#9fa8ad',
@@ -628,7 +646,19 @@ class GeoMap:
         return fig
 
     @staticmethod
-    def button_dict(series, title, colorscale, scale_max=None, percent=False, subtitle=None):
+    def error_series_to_string_list(series, err_series=None, percent=False):
+        percent_str = ('%' if percent else '')
+        if err_series is None:
+            return [percent_str] * len(series)
+        else:
+            return (percent_str + ' ± ' +
+                    (err_series * (100 if percent else 1)).apply('{:.1f}'.format) +
+                    percent_str
+                    ).to_list()
+
+    @classmethod
+    def button_dict(cls, series, title, colorscale, scale_max=None,
+                    percent=False, subtitle=None, err_series=None):
         import plotly.express as px
 
         series = series.fillna(float('nan'))
@@ -641,11 +671,14 @@ class GeoMap:
 
         max_arg = series.max() if scale_max is None else min(scale_max, series.max())
 
-        return dict(args=[{'z': [series.to_list()],
-                           'zmax': [max_arg],
-                           'colorbar': [{'title': {'text': title}}],
-                           'colorscale': [scale_arg],
-                           },
-                          {'title': {'text': f"<b>Map of</b>: {subtitle}",
-                                     'y': 0.875, 'x': 0.005}}],
-                    label=title, method="update")
+        return dict(args=[
+            {'z': [series.to_list()],
+             'zmax': [max_arg],
+             'colorbar': [{'title': {'text': title}}],
+             'colorscale': [scale_arg],
+             'customdata': [cls.error_series_to_string_list(
+                 series, err_series=err_series, percent=percent)]
+             },
+            {'title': {'text': f"<b>Map of</b>: {subtitle}",
+                       'y': 0.875, 'x': 0.005}}],
+            label=title, method="update")
