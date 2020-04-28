@@ -6,7 +6,7 @@ on:
     # no filters on pull requests, so intentionally left blank
     pull_request:
   schedule:
-    - cron:  '0 0 * * *'
+    - cron:  '0 1 * * *'
   issues:
     types: [opened]
 

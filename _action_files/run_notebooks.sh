@@ -12,7 +12,6 @@ for file in 20*.py
 do
     if jupytext -o "${file%.*}.ipynb" "${file%.*}.py"; then
         echo "Sucessfully converted ${file}\n\n\n\n"
-        git add "${file}"
     else
         echo "ERROR Converting ${file}"
         ERRORS="${ERRORS}, ${file}"
