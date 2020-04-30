@@ -18,8 +18,6 @@
 # # World progress projections
 # > Visualising stacked projections for all countries.
 #
-# - comments: true
-# - author: <a href=https://github.com/artdgn/>artdgn</a>
 # - permalink: /covid-world-progress/
 # - image: images/world-infected.png
 # - toc: false

@@ -17,8 +17,6 @@
 # # World maps
 # > Visualising projections and estimations on maps
 #
-# - comments: true
-# - author: <a href=https://github.com/Junikab/>Junikab</a>, <a href=https://github.com/artdgn/>artdgn</a>
 # - permalink: /covid-world-maps/
 # - image: images/world_map.png
 # - toc: false

@@ -18,8 +18,6 @@
 # # ICU Demand and Total Affected Population projections per Country
 # > Modeling current and future ICU demand and percentage of affected population. 
 #
-# - comments: true
-# - author: <a href=https://github.com/artdgn/>artdgn</a>
 # - permalink: /covid-progress-projections/
 # - image: images/icu-need.png
 # - toc: true
