@@ -171,8 +171,9 @@ fig.update_layout(
 # > Tip: Select columns to show on map to from the dropdown menus. The map is zoomable and draggable.
 
 #hide_input
-from IPython.display import HTML
-HTML(fig.to_html())
+# from IPython.display import HTML
+# HTML(fig.to_html())
+fig.show()
 
 # ## Appendix
 # <a id='appendix'></a>
