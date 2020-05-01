@@ -21,7 +21,7 @@
 # - permalink: /covid-progress-projections/
 # - image: images/icu-need.png
 # - toc: true
-# - sticky_rank: 0
+# - sticky_rank: 1
 # - hide: false
 # -
 
@@ -44,12 +44,12 @@ from IPython.display import display, Markdown
 Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isoformat()}***")
 
 # ## Projected need for ICU beds
-# > Countries sorted by current estimated need, split into Growing and Recovering countries by current infection rate.
+# > Countries sorted by current estimated need, split into Growing and Recovering countries by current transmition rate.
 #
 # - Details of estimation and prediction calculations are in [Appendix](#appendix).
 # - Column definitions:
 #     - <font size=2><b>Estimated ICU need per 100k population</b>: number of ICU beds estimated to be needed per 100k population by COVID-19 patents.</font>
-#     - <font size=2><b>Estimated daily infection rate</b>: daily percentage rate of new infections relative to active infections during last 5 days.</font>
+#     - <font size=2><b>Estimated daily transmition rate</b>: daily percentage rate of recent infections relative to active infections during last 5 days.</font>
 #     - <font size=2><b>Projected ICU need per 100k in 14 days</b>: self explanatory.</font>
 #     - <font size=2><b>Projected ICU need per 100k in 30 days</b>: self explanatory.</font>
 #     - <font size=2><b>ICU capacity per 100k</b>: number of ICU beds per 100k population.</font>
@@ -69,7 +69,7 @@ df_pretty['needICU.per100k.+30d'] = stylers.with_errs_float(
 df_pretty['infection_rate'] = stylers.with_errs_ratio(df_pretty, 'infection_rate', 'growth_rate_std')
 
 cols = {'needICU.per100k': 'Estimated<br>current<br>ICU need<br>per 100k<br>population',
-        'infection_rate': 'Estimated<br>daily infection<br>rate',
+        'infection_rate': 'Estimated<br>daily<br>transmition rate',
        'needICU.per100k.+14d': 'Projected<br>ICU need<br>per 100k<br>In 14 days', 
        'needICU.per100k.+30d': 'Projected<br>ICU need<br>per 100k<br>In 30 days',               
        'icu_capacity_per100k': 'ICU<br>capacity<br> per 100k',
@@ -94,25 +94,25 @@ def style_icu_table(df_pretty, filt):
 
 # -
 
-# ### Growing countries (infection rate above 5%)
+# ### Growing countries (transmition rate above 5%)
 
 #hide_input
 style_icu_table(df_pretty, df_data['infection_rate'] > 0.05)
 
-# ### Recovering countries (infection rate below 5%)
+# ### Recovering countries (transmition rate below 5%)
 
 #hide_input
 style_icu_table(df_pretty, df_data['infection_rate'] <= 0.05)
 
 # ## Projected Affected Population percentages
-# > Top 20 countries with most estimated new cases.
+# > Top 20 countries with most estimated recent cases.
 #
-# - Sorted by number of estimated new cases during the last 5 days.
+# - Sorted by number of estimated recent cases during the last 5 days.
 # - Details of estimation and prediction calculations are in [Appendix](#appendix).
 # - Column definitions:
-#     - <font size=2><b>Estimated <i>new</i> cases in last 5 days</b>: self explanatory.</font>
+#     - <font size=2><b>Estimated <i>recent</i> cases in last 5 days</b>: self explanatory.</font>
 #     - <font size=2><b>Estimated <i>total</i> affected population percentage</b>: estimated percentage of total population already affected (infected, recovered, or dead).</font>
-#     - <font size=2><b>Estimated daily infection rate</b>: daily percentage rate of new infections relative to active infections during last 5 days.</font>
+#     - <font size=2><b>Estimated daily transmition rate</b>: daily percentage rate of recent infections relative to active infections during last 5 days.</font>
 #     - <font size=2><b>Projected total affected percentage in 14 days</b>: of population.</font>
 #     - <font size=2><b>Projected total affected percentage in 30 days</b>: of population.</font>        
 #     - <font size=2><b>Lagged fatality rate</b>: reported total deaths divided by total cases 8 days ago.</font>
@@ -129,7 +129,7 @@ df_pretty['infection_rate'] = stylers.with_errs_ratio(df_pretty, 'infection_rate
 
 cols = {'Cases.new.est': 'Estimated <br> <i>new</i> cases <br> in last 5 days',        
        'affected_ratio.est': 'Estimated <br><i>total</i><br>affected<br>population<br>percentage',
-       'infection_rate': 'Estimated <br>daily infection<br>rate',
+       'infection_rate': 'Estimated<br>daily<br>transmition rate',
        'affected_ratio.est.+14d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 14 days',
        'affected_ratio.est.+30d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 30 days',       
        'lagged_fatality_rate': 'Lagged<br>fatality <br> percentage',
@@ -170,7 +170,7 @@ covid_helpers.altair_sir_plot(df_alt, df['needICU.per100k.+14d.min'].idxmax())
 #  - Contains reported data, estimations, projections, and numbers relative to population.
 #  - This is a busy table in order to present as many stats as possible for each country for people to be able to inspect their counties of interest in maximum amount detail (without running the code).
 #  - Sorted by projected need for ICU beds per 100k in 14 days. 
-#  - **New** in this table means **during last 5 days**.
+#  - **Recent** in this table means **during last 5 days**.
 #  - Includes only countries with at least 10 deaths.
 #  > Tip: use Ctrl + F to find your country of interest in the table.
 
@@ -178,7 +178,7 @@ covid_helpers.altair_sir_plot(df_alt, df['needICU.per100k.+14d.min'].idxmax())
 #hide_input
 pretty_cols = {}
 
-pretty_cols['cases'] = 'Cases<br>-Reported(+new)<br>-<i>Estimated(+new)</i>'
+pretty_cols['cases'] = 'Cases<br>-Reported(+recent)<br>-<i>Estimated(+new)</i>'
 df[pretty_cols['cases']] =(df.apply(lambda r: f" \
                          {r['Cases.total']:,.0f}\
                          (+<b>{r['Cases.new']:,.0f}</b>)<br>\
@@ -201,7 +201,7 @@ df[pretty_cols['icu']] =(df.apply(lambda r: f"\
                         <i><b>{r['needICU.per100k.+14d']:.1f}</b> /\
                         {r['needICU.per100k.+30d']:.0f}</i>", axis=1))
 
-pretty_cols['deaths'] = 'Reported<br>Deaths<br>-Total(+new)<br>-<i>Per100k(+new)</i>'
+pretty_cols['deaths'] = 'Reported<br>Deaths<br>-Total(+recent)<br>-<i>Per100k(+recent)</i>'
 df[pretty_cols['deaths']] =(df.apply(lambda r: f"\
                          {r['Deaths.total']:,.0f}\
                          (+<b>{r['Deaths.new']:,.0f}</b>) <br>\
@@ -209,7 +209,7 @@ df[pretty_cols['deaths']] =(df.apply(lambda r: f"\
                          (+<b>{r['Deaths.new.per100k']:,.1f}</b></i>) \
                          ", axis=1))
 
-pretty_cols['rates'] = 'Rates:<br>-Cases<br>-Infection<br>-Lagged<br>fatality<br>(<i>Reported</i>)'
+pretty_cols['rates'] = 'Rates:<br>-Cases<br>-Transmition<br>-Lagged<br>fatality<br>(<i>Reported</i>)'
 df[pretty_cols['rates']] =(df.apply(lambda r: f" \
                          {r['growth_rate']:,.1%} \
                          ± <font size=1><i>{r['growth_rate_std']:.0%}</i></font><br>\

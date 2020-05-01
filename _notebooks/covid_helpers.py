@@ -586,9 +586,10 @@ class GeoMap:
     @classmethod
     def make_map_figure(cls,
                         df_plot_geo,
-                        col='needICU.per100k.+14d',
-                        title='ICU need<br>(in 14 days)',
-                        subtitle='Projected ICU need per 100k population in 14 days'):
+                        col='infection_rate',
+                        title='Transmition rate<br>percent (blue-red)',
+                        subtitle='Transmition rate: over 5% (red) '
+                                 'spreading, under 5% (blue) recovering'):
         import plotly.graph_objects as go
 
         df_plot_geo['text'] = (df_plot_geo.apply(
@@ -597,25 +598,27 @@ class GeoMap:
                 f"Cases (reported): {r['Cases.total']:,.0f} (+<b>{r['Cases.new']:,.0f}</b>)<br>"
                 f"Cases (estimated): {r['Cases.total.est']:,.0f} (+<b>{r['Cases.new.est']:,.0f}</b>)<br>"
                 f"Affected percent: <b>{r['affected_ratio.est']:.1%}</b><br>"
-                f"Infection rate: <b>{r['infection_rate']:.1%}</b> ± {r['growth_rate_std']:.1%}<br>"
+                f"Transmition rate: <b>{r['infection_rate']:.1%}</b> ± {r['growth_rate_std']:.1%}<br>"
                 f"Deaths: {r['Deaths.total']:,.0f} (+<b>{r['Deaths.new']:,.0f}</b>)<br>"
             ), axis=1))
+
+        percent = ('rate' in col or 'ratio' in col)
 
         fig = go.FigureWidget(
             data=go.Choropleth(
                 locations=df_plot_geo['iso_code'],
-                z=df_plot_geo[col].fillna(float('nan')),
+                z=df_plot_geo[col].fillna(float('nan')) * (100 if percent else 1),
                 zmin=0,
                 zmax=10,
                 text=df_plot_geo['text'],
                 ids=df_plot_geo['country'],
                 customdata=cls.error_series_to_string_list(
                     series=df_plot_geo[col],
-                    err_series=None if '+' not in col else df_plot_geo[col + '.err'],
-                    percent=('rate' in col or 'ratio' in col)
+                    err_series=df_plot_geo['growth_rate_std'],
+                    percent=percent
                 ),
                 hovertemplate="<b>%{id}</b>:<br><b>%{z:.1f}%{customdata}</b><br>%{text}<extra></extra>",
-                colorscale='sunsetdark',
+                colorscale='BLuered',
                 autocolorscale=False,
                 marker_line_color='#9fa8ad',
                 marker_line_width=0.5,
@@ -632,6 +635,7 @@ class GeoMap:
             autosize=True,
             margin=dict(t=0, b=0, l=0, r=0),
             template="plotly_white",
+            hoverlabel=dict(font_size=12),
             geo=dict(
                 showframe=False,
                 projection_type='natural earth',
