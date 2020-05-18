@@ -7,6 +7,7 @@ import pandas as pd
 data_folder = (os.path.join(os.path.dirname(__file__), 'data_files')
                if '__file__' in locals() else 'data_files')
 
+COL_REGION = 'Country/Region'
 
 class SourceData:
     df_mappings = pd.read_csv(os.path.join(data_folder, 'mapping_countries.csv'))
@@ -23,12 +24,12 @@ class SourceData:
             f'csse_covid_19_time_series/time_series_covid19_{name}_global.csv')
         df = pd.read_csv(url)
         # rename countries
-        df['Country/Region'] = df['Country/Region'].replace(cls.mappings['replace.country'])
+        df[COL_REGION] = df[COL_REGION].replace(cls.mappings['replace.country'])
         return df
 
     @staticmethod
     def get_dates(df):
-        dt_cols = df.columns[~df.columns.isin(['Province/State', 'Country/Region', 'Lat', 'Long'])]
+        dt_cols = df.columns[~df.columns.isin(['Province/State', COL_REGION, 'Lat', 'Long'])]
         LAST_DATE_I = -1
         # sometimes last column may be empty, then go backwards
         for i in range(-1, -len(dt_cols), -1):
@@ -110,7 +111,7 @@ class HostpitalBeds(WordPopulation):
 
 
 class OverviewData:
-    COL_REGION = 'Country/Region'
+    COL_REGION = COL_REGION
     ABS_COLS = ['Cases.total', 'Deaths.total', 'Cases.new', 'Deaths.new']
 
     PER_100K_COLS = [f'{c}.per100k' for c in ABS_COLS]
@@ -153,11 +154,11 @@ class OverviewData:
 
     @classmethod
     def lagged_cases(cls, lag=PREV_LAG):
-        return cls.dft_cases.groupby(cls.COL_REGION)[cls.dt_cols[cls.LAST_DATE_I - lag]].sum()
+        return cls.dft_cases.groupby(COL_REGION)[cls.dt_cols[cls.LAST_DATE_I - lag]].sum()
 
     @classmethod
     def lagged_deaths(cls, lag=PREV_LAG):
-        return cls.dft_deaths.groupby(cls.COL_REGION)[cls.dt_cols[cls.LAST_DATE_I - lag]].sum()
+        return cls.dft_deaths.groupby(COL_REGION)[cls.dt_cols[cls.LAST_DATE_I - lag]].sum()
 
     @classmethod
     def overview_table(cls):
@@ -167,49 +168,49 @@ class OverviewData:
                                   'Deaths.total.prev': cls.lagged_deaths()})
                     .sort_values(by=['Cases.total', 'Deaths.total'], ascending=[False, False])
                     .reset_index())
-        df_table.rename(columns={'index': 'Country/Region'}, inplace=True)
+        df_table.rename(columns={'index': COL_REGION}, inplace=True)
         for c in cls.ABS_COLS[:2]:
             df_table[c.replace('total', 'new')] = (df_table[c] - df_table[f'{c}.prev']).clip(0)  # DATA BUG
         df_table['Fatality Rate'] = (100 * df_table['Deaths.total'] / df_table['Cases.total']).round(1)
-        df_table['Continent'] = df_table['Country/Region'].map(SourceData.mappings['map.continent'])
+        df_table['Continent'] = df_table[COL_REGION].map(SourceData.mappings['map.continent'])
 
         # remove problematic
-        df_table = df_table[~df_table['Country/Region'].isin(['Cape Verde', 'Cruise Ship', 'Kosovo'])]
+        df_table = df_table[~df_table[COL_REGION].isin(['Cape Verde', 'Cruise Ship', 'Kosovo'])]
         return df_table
 
     @classmethod
     def make_new_cases_arrays(cls, n_days=50):
-        dft_ct_cases = cls.dft_cases.groupby(cls.COL_REGION)[cls.dt_cols].sum()
+        dft_ct_cases = cls.dft_cases.groupby(COL_REGION)[cls.dt_cols].sum()
         dft_ct_new_cases = dft_ct_cases.diff(axis=1).fillna(0).astype(int)
         return dft_ct_new_cases.loc[:, cls.dt_cols[cls.LAST_DATE_I - n_days]:cls.dt_cols[cls.LAST_DATE_I]]
 
     @classmethod
     def populations_df(cls):
-        df_pop = WordPopulation.load().rename(columns={'country': cls.COL_REGION})
-        df_pop[cls.COL_REGION] = df_pop[cls.COL_REGION].map({
+        df_pop = WordPopulation.load().rename(columns={'country': COL_REGION})
+        df_pop[COL_REGION] = df_pop[COL_REGION].map({
             'United States': 'US',
             'Czech Republic (Czechia)': 'Czechia',
             'Taiwan': 'Taiwan*',
             'State of Palestine': 'West Bank and Gaza',
             'Côte d\'Ivoire': 'Cote d\'Ivoire',
-        }).fillna(df_pop[cls.COL_REGION])
-        return df_pop.set_index(cls.COL_REGION)
+        }).fillna(df_pop[COL_REGION])
+        return df_pop.set_index(COL_REGION)
 
     @classmethod
     def beds_df(cls):
-        df_beds = HostpitalBeds.load().rename(columns={'country': cls.COL_REGION})
-        df_beds[cls.COL_REGION] = df_beds[cls.COL_REGION].map({
+        df_beds = HostpitalBeds.load().rename(columns={'country': COL_REGION})
+        df_beds[COL_REGION] = df_beds[COL_REGION].map({
             'United States': 'US',
             'United Kingdom (more)': 'United Kingdom',
             'Czech Republic': 'Czechia',
-        }).fillna(df_beds[cls.COL_REGION])
-        return df_beds.set_index(cls.COL_REGION)
+        }).fillna(df_beds[COL_REGION])
+        return df_beds.set_index(COL_REGION)
 
     @classmethod
     def overview_table_with_per_100k(cls):
         df = (cls.overview_table()
               .drop(['Cases.total.prev', 'Deaths.total.prev'], axis=1)
-              .set_index(cls.COL_REGION, drop=True)
+              .set_index(COL_REGION, drop=True)
               .sort_values('Cases.new', ascending=False))
         df['Fatality Rate'] /= 100
 
@@ -253,9 +254,9 @@ class OverviewData:
     def smoothed_growth_rates(cls, n_days):
         recent_dates = cls.dt_cols[-n_days:]
 
-        cases = (cls.dft_cases.groupby(cls.COL_REGION).sum()[recent_dates] + 1)  # with pseudo counts
+        cases = (cls.dft_cases.groupby(COL_REGION).sum()[recent_dates] + 1)  # with pseudo counts
 
-        diffs = cls.dft_cases.groupby(cls.COL_REGION).sum().diff(axis=1)[recent_dates]
+        diffs = cls.dft_cases.groupby(COL_REGION).sum().diff(axis=1)[recent_dates]
 
         cases, diffs = cases.T, diffs.T  # broadcasting works correctly this way
 
@@ -310,7 +311,7 @@ class OverviewData:
     @classmethod
     def _calculate_recovered_and_active_until_now(cls, df):
         # estimated daily cases ratio of population
-        lagged_cases_ratios = (cls.dft_cases.groupby(cls.COL_REGION).sum()[cls.dt_cols].T *
+        lagged_cases_ratios = (cls.dft_cases.groupby(COL_REGION).sum()[cls.dt_cols].T *
                                df['testing_bias'].T / df['population'].T).T
         # protect from testing bias over-inflation
         lagged_cases_ratios[lagged_cases_ratios > 1] = 1
@@ -576,7 +577,7 @@ class GeoMap:
     def make_geo_df(cls, df_all, cases_filter=1000, deaths_filter=20):
         world = cls.get_world_geo_df()
 
-        df_plot = (df_all.reset_index().rename(columns={'Country/Region': 'country'}))
+        df_plot = (df_all.reset_index().rename(columns={COL_REGION: 'country'}))
         df_plot_geo = pd.merge(world, df_plot, on='country', how='left')
 
         df_plot_geo = df_plot_geo[((df_plot_geo['Cases.total'] >= cases_filter)

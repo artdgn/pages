@@ -57,7 +57,8 @@ df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
 # -
 
 #hide
-df_tot = df_alt.rename(columns={'country': 'Country/Region'}).set_index('Country/Region')
+df_tot = df_alt.rename(columns={'country': covid_helpers.COL_REGION}
+                      ).set_index(covid_helpers.COL_REGION)
 df_tot['population'] = df_all['population']
 for c in df_tot.columns[df_alt.dtypes == float]:
     df_tot[c + '-total'] = df_tot[c] * df_tot['population']
@@ -69,7 +70,12 @@ df_tot.columns = [c.replace('.', '-') for c in df_tot.columns]
 import altair as alt
 alt.data_transformers.disable_max_rows()
 
-alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
+# filter out noisy countries for actively infected plot:
+df_filt = helper.filter_df(df_all)
+df_tot_filt = df_tot[df_tot[covid_helpers.COL_REGION].isin(df_filt.index.unique())]
+
+# make plot
+alt.Chart(df_tot_filt[df_tot_filt['day'] < 30]).mark_area().encode(
     x=alt.X('day:Q', title=f'days after today ({cur_date})'),
     y=alt.Y("Infected-min-total:Q", stack=True, title="Number of people"),
     color=alt.Color("Country/Region:N", legend=None),
