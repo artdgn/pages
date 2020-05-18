@@ -482,7 +482,7 @@ def pandas_console_options():
     pd.set_option('display.max_colwidth', 300)
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', 1000)
+    pd.set_option('display.width', None)
 
 
 def altair_sir_plot(df, default_country):
@@ -558,7 +558,7 @@ class GeoMap:
     def get_world_geo_df(cls):
         import geopandas
 
-        shapefile = 'data_files/110m_countries/ne_110m_admin_0_countries.shp'
+        shapefile = 'data_files/50m_countries/ne_50m_admin_0_countries.shp'
 
         world = geopandas.read_file(shapefile)[['ADMIN', 'ADM0_A3', 'geometry']]
         world.columns = ['country', 'iso_code', 'geometry']
@@ -606,7 +606,8 @@ class GeoMap:
 
         fig = go.FigureWidget(
             data=go.Choropleth(
-                locations=df_plot_geo['iso_code'],
+                locations=df_plot_geo.index,
+                geojson=df_plot_geo['geometry'].__geo_interface__,
                 z=df_plot_geo[col].fillna(float('nan')) * (100 if percent else 1),
                 zmin=0,
                 zmax=10,
