@@ -38,8 +38,7 @@ df_all = helper.table_with_projections()
 
 #hide_input
 from IPython.display import Markdown
-cur_date = pd.to_datetime(covid_helpers.OverviewData.dt_today).date().isoformat()
-Markdown(f"***Based on data up to: {cur_date}***")
+Markdown(f"***Based on data up to: {covid_helpers.OverviewData.cur_date}***")
 
 # ## For details per country see [main notebook](/pages/covid-progress-projections/)
 
@@ -76,7 +75,7 @@ df_tot_filt = df_tot[df_tot[covid_helpers.COL_REGION].isin(df_filt.index.unique(
 
 # make plot
 alt.Chart(df_tot_filt[df_tot_filt['day'] < 30]).mark_area().encode(
-    x=alt.X('day:Q', title=f'days after today ({cur_date})'),
+    x=alt.X('day:Q', title=f'days relative to today ({covid_helpers.OverviewData.cur_date})'),
     y=alt.Y("Infected-min-total:Q", stack=True, title="Number of people"),
     color=alt.Color("Country/Region:N", legend=None),
     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed'],    
@@ -88,7 +87,7 @@ alt.Chart(df_tot_filt[df_tot_filt['day'] < 30]).mark_area().encode(
 
 #hide_input
 alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
-    x=alt.X('day:Q', title=f'days after today ({cur_date})'),
+    x=alt.X('day:Q', title=f'days relative to today ({covid_helpers.OverviewData.cur_date})'),
     y=alt.Y("Removed-min-total:Q", stack=True, title="Number of people"),
     color=alt.Color("Country/Region:N", legend=None),
     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
@@ -99,7 +98,7 @@ alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
 
 #hide_input
 alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
-    x=alt.X('day:Q', title=f'days after today ({cur_date})'),
+    x=alt.X('day:Q', title=f'days relative to today ({covid_helpers.OverviewData.cur_date})'),
     y=alt.Y("Susceptible-max-total:Q", stack=True, 
             scale=alt.Scale(domain=(0, df_tot[df_tot['day']==1]['Susceptible-total'].sum())),
            title='Number of people'),

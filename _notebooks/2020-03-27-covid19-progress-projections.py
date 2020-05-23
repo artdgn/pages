@@ -35,13 +35,15 @@ import covid_helpers
 helper = covid_helpers.OverviewData
 stylers = covid_helpers.PandasStyling
 df_all = helper.table_with_projections()
-df = helper.filter_df(df_all)
+df_filt = helper.filter_df(df_all)
+df = df_filt.rename(index={'Bosnia and Herzegovina': 'Bosnia',
+                           'United Arab Emirates': 'UAE'})
 df.columns
 # -
 
 #hide_input
 from IPython.display import display, Markdown
-Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isoformat()}***")
+Markdown(f"***Based on data up to: {covid_helpers.OverviewData.cur_date}***")
 
 # ## Projected need for ICU beds
 # > Countries sorted by current estimated need, split into Growing and Recovering countries by current transmition rate.
@@ -164,7 +166,8 @@ df_pretty[cols.keys()].rename(cols, axis=1).style\
 #hide_input
 _, debug_dfs = helper.table_with_projections(debug_dfs=True)
 df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
-covid_helpers.altair_sir_plot(df_alt, df['needICU.per100k.+14d.min'].idxmax())
+df_alt_filt = df_alt[(df_alt['day'] > -60) & (df_alt['country'].isin(df_filt.index))]
+covid_helpers.altair_sir_plot(df_alt_filt, df_filt['Deaths.new.per100k'].idxmax())
 
 # ## Full table with more details
 #  - Contains reported data, estimations, projections, and numbers relative to population.

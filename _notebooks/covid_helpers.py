@@ -153,6 +153,8 @@ class OverviewData:
     dfc_cases = dft_cases.groupby(COL_REGION)[dt_today].sum()
     dfc_deaths = dft_deaths.groupby(COL_REGION)[dt_today].sum()
 
+    cur_date = pd.to_datetime(dt_today).date().isoformat()
+
     PREV_LAG = 5
     dt_lag = dt_cols[LAST_DATE_I - PREV_LAG]
 
@@ -483,8 +485,7 @@ class OverviewData:
                       'Removed.max': traces['rec_max'][day][debug_country],
                       'Removed.min': traces['rec_min'][day][debug_country],
                       }
-                     for day in range(len(traces['rec_center']))
-                     if day > simulation_start_day]
+                     for day in range(len(traces['rec_center']))]
 
             title = (f"{debug_country}: "
                      f"Growth Rate: {growth_rate[debug_country]:.0%}. "
@@ -498,14 +499,12 @@ class OverviewData:
 
     @classmethod
     def filter_df(cls, df, cases_filter=1000, deaths_filter=20, population_filter=3e5):
-        df = df.rename(index={'Bosnia and Herzegovina': 'Bosnia',
-                              'United Arab Emirates': 'UAE'})
         return df[((df['Cases.total'] > cases_filter) |
                    (df['Deaths.total'] > deaths_filter)) &
                   (df['population'] > population_filter)][df.columns.sort_values()]
 
 
-def altair_sir_plot(df, default_country):
+def altair_sir_plot(df_alt, default_country):
     import altair as alt
 
     alt.data_transformers.disable_max_rows()
@@ -514,21 +513,21 @@ def altair_sir_plot(df, default_country):
         name='Select',
         fields=['country'],
         init={'country': default_country},
-        bind=alt.binding_select(options=sorted(df['country'].unique()))
+        bind=alt.binding_select(options=sorted(df_alt['country'].unique()))
     )
 
-    title = (alt.Chart(df[['country', 'title']].drop_duplicates())
+    title = (alt.Chart(df_alt[['country', 'title']].drop_duplicates())
              .mark_text(dy=-180, dx=0, size=16)
              .encode(text='title:N')
              .transform_filter(select_country))
 
-    base = alt.Chart(df).encode(x='day:Q')
+    base = alt.Chart(df_alt).encode(x='day:Q')
 
-    line_cols = ['Infected', 'Susceptible', 'Removed']
-    colors = ['red', 'blue', 'green']
+    line_cols = ['Infected', 'Removed']  # 'Susceptible'
+    colors = ['red', 'green']
     lines = (base.mark_line()
              .transform_fold(line_cols)
-             .encode(x='day:Q',
+             .encode(x=alt.X('day:Q', title=f'days relative to today ({OverviewData.cur_date})'),
                      y=alt.Y('value:Q',
                              axis=alt.Axis(format='%', title='Percentage of Population')),
                      color=alt.Color('key:N',
@@ -540,7 +539,11 @@ def altair_sir_plot(df, default_country):
                              .encode(y=f'{col}\.max:Q', y2=f'{col}\.min:Q')
                               for col, color in zip(line_cols, colors)])
 
-    return ((lines + bands + title)
+    today_line = (alt.Chart(pd.DataFrame({'x': [0]}))
+                  .mark_rule(color='orange')
+                  .encode(x='x', size=alt.value(1)))
+
+    return ((lines + bands + title + today_line)
             .add_selection(select_country)
             .transform_filter(select_country)
             .configure_title(fontSize=20)
