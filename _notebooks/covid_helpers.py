@@ -9,6 +9,12 @@ data_folder = (os.path.join(os.path.dirname(__file__), 'data_files')
 
 COL_REGION = 'Country/Region'
 
+pd.set_option('display.max_colwidth', 300)
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', 10000)
+
+
 class SourceData:
     df_mappings = pd.read_csv(os.path.join(data_folder, 'mapping_countries.csv'))
 
@@ -18,11 +24,31 @@ class SourceData:
                 }
 
     @classmethod
-    def get_covid_dataframe(cls, name):
-        url = (
-            'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/'
-            f'csse_covid_19_time_series/time_series_covid19_{name}_global.csv')
+    def _cache_csv_path(cls, name):
+        return os.path.join(data_folder, f'covid_jhu/{name}_transposed.csv')
+
+    @classmethod
+    def _save_covid_df(cls, df, name):
+        df.T.to_csv(cls._cache_csv_path(name))
+
+    @classmethod
+    def _load_covid_df(cls, name):
+        df = pd.read_csv(cls._cache_csv_path(name), index_col=0).T
+        df[df.columns[2:]] = df[df.columns[2:]].apply(pd.to_numeric, errors='coerce')
+        return df
+
+    @classmethod
+    def _download_covid_df(cls, name):
+        url = ('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/'
+               f'csse_covid_19_time_series/time_series_covid19_{name}_global.csv')
         df = pd.read_csv(url)
+        return df
+
+    @classmethod
+    def get_covid_dataframe(cls, name):
+        df = cls._download_covid_df(name)
+        cls._save_covid_df(df, name)
+
         # rename countries
         df[COL_REGION] = df[COL_REGION].replace(cls.mappings['replace.country'])
         return df
@@ -477,13 +503,6 @@ class OverviewData:
         return df[((df['Cases.total'] > cases_filter) |
                    (df['Deaths.total'] > deaths_filter)) &
                   (df['population'] > population_filter)][df.columns.sort_values()]
-
-
-def pandas_console_options():
-    pd.set_option('display.max_colwidth', 300)
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
 
 
 def altair_sir_plot(df, default_country):
