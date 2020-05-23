@@ -65,13 +65,18 @@ df_tot = df_tot.reset_index()
 df_tot.columns = [c.replace('.', '-') for c in df_tot.columns]
 
 # +
-#hide_input
-import altair as alt
-alt.data_transformers.disable_max_rows()
+#hide
+# filter by days
+df_tot = df_tot[df_tot['day'].between(-30, 30) | (df_tot['day'] % 10 == 0)]
 
 # filter out noisy countries for actively infected plot:
 df_filt = helper.filter_df(df_all)
 df_tot_filt = df_tot[df_tot[covid_helpers.COL_REGION].isin(df_filt.index.unique())]
+
+# +
+#hide_input
+import altair as alt
+alt.data_transformers.disable_max_rows()
 
 # today
 today_line = (alt.Chart(pd.DataFrame({'x': [0]}))
