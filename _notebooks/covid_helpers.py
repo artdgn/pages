@@ -350,7 +350,7 @@ class OverviewData:
         zeros_series = lagged_cases_ratios[cls.dt_cols[0]] * 0  # this is to have consistent types
         for day in range(len(cls.dt_cols)):
             prev_rec = recs[day - 1] if day > 0 else zeros_series
-            tot_lagged_9 = lagged_cases_ratios[cls.dt_cols[day - 9]] if day >= 8 else zeros_series
+            tot_lagged_9 = lagged_cases_ratios[cls.dt_cols[day - 9]] if day >= 9 else zeros_series
             new_recs = prev_rec + (tot_lagged_9 - prev_rec) * cls.recovery_lagged9_rate
             new_recs[new_recs > 1] = 1
             recs.append(new_recs)
