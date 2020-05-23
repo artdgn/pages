@@ -53,8 +53,8 @@ Markdown(f"***Based on data up to: {covid_helpers.OverviewData.cur_date}***")
 _, debug_dfs = helper.table_with_projections(debug_dfs=True)
 
 df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
-# -
 
+# +
 #hide
 df_tot = df_alt.rename(columns={'country': covid_helpers.COL_REGION}
                       ).set_index(covid_helpers.COL_REGION)
@@ -63,6 +63,9 @@ for c in df_tot.columns[df_alt.dtypes == float]:
     df_tot[c + '-total'] = df_tot[c] * df_tot['population']
 df_tot = df_tot.reset_index()
 df_tot.columns = [c.replace('.', '-') for c in df_tot.columns]
+
+# filter by days
+df_tot = df_tot[df_tot['day'].between(-30, 30)]
 
 # +
 #hide_input
@@ -73,41 +76,53 @@ alt.data_transformers.disable_max_rows()
 df_filt = helper.filter_df(df_all)
 df_tot_filt = df_tot[df_tot[covid_helpers.COL_REGION].isin(df_filt.index.unique())]
 
+# today
+today_line = (alt.Chart(pd.DataFrame({'x': [0]}))
+                  .mark_rule(color='orange')
+                  .encode(x='x', size=alt.value(1)))
+
 # make plot
-alt.Chart(df_tot_filt[df_tot_filt['day'] < 30]).mark_area().encode(
+stacked_inf = alt.Chart(df_tot_filt).mark_area().encode(
     x=alt.X('day:Q', title=f'days relative to today ({covid_helpers.OverviewData.cur_date})'),
     y=alt.Y("Infected-min-total:Q", stack=True, title="Number of people"),
     color=alt.Color("Country/Region:N", legend=None),
     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed'],    
-).interactive()\
+)
+(stacked_inf + today_line).interactive()\
 .properties(width=650, height=340)\
 .properties(title='Actively infected (conservative estimate)')\
 .configure_title(fontSize=20)
-# -
 
+# +
 #hide_input
-alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
+stacked_rem = alt.Chart(df_tot_filt).mark_area().encode(
     x=alt.X('day:Q', title=f'days relative to today ({covid_helpers.OverviewData.cur_date})'),
     y=alt.Y("Removed-min-total:Q", stack=True, title="Number of people"),
     color=alt.Color("Country/Region:N", legend=None),
     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
-).interactive()\
+)
+
+(stacked_rem + today_line).interactive()\
 .properties(width=650, height=340)\
 .properties(title='Recovered or dead (conservative estimate)')\
 .configure_title(fontSize=20)
 
+# +
 #hide_input
-alt.Chart(df_tot[df_tot['day'] < 30]).mark_area().encode(
+stacked_sus = alt.Chart(df_tot).mark_area().encode(
     x=alt.X('day:Q', title=f'days relative to today ({covid_helpers.OverviewData.cur_date})'),
     y=alt.Y("Susceptible-max-total:Q", stack=True, 
             scale=alt.Scale(domain=(0, df_tot[df_tot['day']==1]['Susceptible-total'].sum())),
            title='Number of people'),
     color=alt.Color("Country/Region:N", legend=None),
     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
-).interactive()\
+)
+
+(stacked_sus + today_line).interactive()\
 .properties(width=650, height=340)\
 .properties(title='Susceptible or not yet infected (conservative estimate)')\
 .configure_title(fontSize=20)
+# -
 
 # ## Appendix and Methodology
 # <a id='appendix'></a>
