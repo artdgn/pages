@@ -300,7 +300,7 @@ class OverviewData:
         weighted_std = ((daily_growth_rates - weighted_mean).pow(2) *
                         sampling_weights).sum(0).pow(0.5)
 
-        return weighted_mean, weighted_std
+        return weighted_mean - 1, weighted_std
 
     @classmethod
     def table_with_icu_capacities(cls):
@@ -314,12 +314,17 @@ class OverviewData:
         return df
 
     @classmethod
-    def table_with_projections(cls, projection_days=(7, 14, 30, 60, 90), debug_dfs=False):
+    def table_with_projections(cls, projection_days=(7, 14, 30), debug_dfs=False):
         df = cls.table_with_icu_capacities()
 
         df['affected_ratio'] = df['Cases.total'] / df['population']
 
+        df['growth_rate'], df['growth_rate_std'] = cls.smoothed_growth_rates(n_days=cls.PREV_LAG)
+
         past_active, past_recovered = cls._calculate_recovered_and_active_until_now(df)
+
+        df['infection_rate'] = cls._growth_to_infection_rate(
+            growth=df['growth_rate'], rec=past_recovered[-1], act=past_active[-1])
 
         df, traces = cls._run_model_forward(
             df,
@@ -332,7 +337,7 @@ class OverviewData:
                 debug_countries=df.index,
                 traces=traces,
                 simulation_start_day=len(past_recovered) - 1,
-                growth_rate=df['growth_rate'])
+                infection_rate=df['infection_rate'])
             return df, debug_dfs
         return df
 
@@ -366,14 +371,8 @@ class OverviewData:
                            projection_days,
                            ):
 
-        cur_growth_rate, growsth_rate_std = cls.smoothed_growth_rates(n_days=cls.PREV_LAG)
-        df['growth_rate'] = (cur_growth_rate - 1)
-        df['growth_rate_std'] = growsth_rate_std
-        df['infection_rate'] = cls._growth_to_infection_rate(
-            growth=cur_growth_rate, rec=past_recovered, act=past_active)
-
         sus, act, rec = cls.run_sir_mode(
-            past_recovered, past_active, cur_growth_rate, n_days=projection_days[-1])
+            past_recovered, past_active, df['growth_rate'], n_days=projection_days[-1])
 
         # sample more growth rates
         sus_lists = [[s] for s in sus]
@@ -381,7 +380,7 @@ class OverviewData:
         rec_lists = [[r] for r in rec]
 
         for ratio in np.linspace(-1, 1, 10):
-            pert_growth = cur_growth_rate + ratio * growsth_rate_std
+            pert_growth = df['growth_rate'] + ratio * df['growth_rate_std']
             pert_growth[pert_growth < 0] = 0
             sus_other, act_other, rec_other = cls.run_sir_mode(
                 past_recovered, past_active, pert_growth, n_days=projection_days[-1])
@@ -426,9 +425,9 @@ class OverviewData:
 
     @classmethod
     def _growth_to_infection_rate(cls, growth, rec, act):
-        daily_delta = growth - 1
-        tot = rec[-1] + act[-1]
-        active = act[-1]
+        daily_delta = growth
+        tot = rec + act
+        active = act
         # Explanation of the formula below:
         #   daily delta = delta total / total
         #   daily delta = new-infected / total
@@ -440,7 +439,7 @@ class OverviewData:
     def run_sir_mode(cls, past_rec, past_act, growth, n_days):
         rec, act = past_rec.copy(), past_act.copy()
 
-        infect_rate = cls._growth_to_infection_rate(growth, rec, act)
+        infect_rate = cls._growth_to_infection_rate(growth, rec[-1], act[-1])
 
         # simulate
         for i in range(n_days):
@@ -471,7 +470,7 @@ class OverviewData:
 
     @classmethod
     def _SIR_timeseries_for_countries(cls, debug_countries, traces,
-                                      simulation_start_day, growth_rate):
+                                      simulation_start_day, infection_rate):
         dfs = []
         for debug_country in debug_countries:
             debug = [{'day': day - simulation_start_day,
@@ -488,7 +487,7 @@ class OverviewData:
                      for day in range(len(traces['rec_center']))]
 
             title = (f"{debug_country}: "
-                     f"Growth Rate: {growth_rate[debug_country]:.0%}. "
+                     f"Transmission Rate: {infection_rate[debug_country]:.1%}. "
                      f"S/I/R init: {debug[0]['Susceptible']:.1%},"
                      f"{debug[0]['Infected']:.1%},{debug[0]['Removed']:.1%}")
             df = pd.DataFrame(debug).set_index('day')
