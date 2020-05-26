@@ -65,11 +65,126 @@ class SourceData:
         return LAST_DATE_I, dt_cols
 
 
-class WordPopulation:
-    csv_path = os.path.join(data_folder, 'world_population.csv')
-    page = 'https://www.worldometers.info/world-population/population-by-country/'
+class AgeAdjustedData:
+    # https://population.un.org/wpp/Download/Standard/Population/
+    # https://population.un.org/wpp/Download/Files/1_Indicators%20(Standard)/EXCEL_FILES/1_Population/WPP2019_POP_F07_1_POPULATION_BY_AGE_BOTH_SEXES.xlsx
+    csv_path = os.path.join(data_folder, 'world_pop_age_2020.csv')
 
-    # alternative https://en.wikipedia.org/wiki/List_of_countries_by_population_%28United_Nations%29 table 5
+    class Cols:
+        # o = original
+        o4 = '0-4'
+        o9 = '5-9'
+        o14 = '10-14'
+        o19 = '15-19'
+        o24 = '20-24'
+        o29 = '25-29'
+        o34 = '30-34'
+        o39 = '35-39'
+        o44 = '40-44'
+        o49 = '45-49'
+        o54 = '50-54'
+        o59 = '55-59'
+        o64 = '60-64'
+        o69 = '65-69'
+        o74 = '70-74'
+        o79 = '75-79'
+        o84 = '80-84'
+        o89 = '85-89'
+        o94 = '90-94'
+        o99 = '95-99'
+        o100p = '100+'
+
+        # https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3590771
+        # ny = new york
+        ny17 = 'ny17'  # 0-17
+        ny44 = 'ny44'  # 18-44
+        ny64 = 'ny64'  # 45-64
+        ny74 = 'ny74'  # 65-74
+        ny75p = 'ny75p'  # 75+
+
+    @classmethod
+    def load(cls):
+        df_raw = pd.read_csv(cls.csv_path)
+
+        df_filt = df_raw[df_raw['Type'].isin(['Subregion', 'Country/Area'])]
+
+        df_filt = (df_filt
+                   .drop(columns=['Index', 'Variant', 'Notes', 'Country code', 'Parent code',
+                                  'Reference date (as of 1 July)', 'Type'])
+                   .rename(columns={'Region, subregion, country or area *': COL_REGION}))
+
+        # adjust country names
+        df_filt[COL_REGION] = df_filt[COL_REGION].map({
+            'United States of America': 'US',
+            'China, Taiwan Province of China': 'Taiwan*',
+            'United Republic of Tanzania': 'Tanzania',
+            'Iran (Islamic Republic of)': 'Iran',
+            'Republic of Korea': 'South Korea',
+            'Bolivia (Plurinational State of)': 'Bolivia',
+            'Venezuela (Bolivarian Republic of)': 'Venezuela',
+            'Republic of Moldova': 'Moldova',
+            'Russian Federation': 'Russia',
+            'State of Palestine': 'West Bank and Gaza',
+            'Côte d\'Ivoire': 'Cote d\'Ivoire',
+            'Democratic Republic of the Congo': 'Congo (Kinshasa)',
+            'Congo': 'Congo (Brazzaville)',
+            'Syrian Arab Republic': 'Syria',
+            'Myanmar': 'Burma',
+            'Viet Nam': 'Vietnam',
+            'Brunei Darussalam': 'Brunei',
+            'Lao People\'s Democratic Republic': 'Laos'
+        }).fillna(df_filt[COL_REGION])
+
+        df_num = df_filt.set_index(COL_REGION)
+
+        # convert to numbers
+        df_num = df_num.apply(lambda s:
+                              pd.Series(s)
+                              .str.replace(' ', '')
+                              .apply(pd.to_numeric, errors='coerce'))
+
+        population_s = df_num.sum(1) * 1000
+
+        # convert to ratios
+        df_pct = (df_num.T / df_num.sum(1)).T
+
+        # calulate NY bucket percentages
+        cols = cls.Cols
+        df_pct[cols.ny17] = df_pct[[cols.o4, cols.o9,
+                                    cols.o14, cols.o19]].sum(1)
+        df_pct[cols.ny44] = df_pct[[cols.o24, cols.o29,
+                                    cols.o34, cols.o39,
+                                    cols.o44]].sum(1)
+        df_pct[cols.ny64] = df_pct[[cols.o49,
+                                    cols.o54, cols.o59,
+                                    cols.o64]].sum(1)
+        df_pct[cols.ny74] = df_pct[[cols.o69, cols.o74]].sum(1)
+        df_pct[cols.ny75p] = df_pct[[cols.o79,
+                                     cols.o84, cols.o89,
+                                     cols.o94, cols.o99,
+                                     cols.o100p]].sum(1)
+        # check: df_pct[[cols.ny17, cols.ny44, cols.ny64, cols.ny74, cols.ny75p]].sum(1)
+
+        # calculate IFR
+        # https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3590771
+        #  Table 1
+        ifr_s = pd.Series(np.dot(df_pct
+                                 [[cols.ny17, cols.ny44, cols.ny64, cols.ny74, cols.ny75p]],
+                                 [0.00002, 0.00087, 0.00822, 0.02626, 0.07137]),
+                          index=df_pct.index)
+
+        ## icu need estimation
+        ## https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf
+        ## 4.4% serious symptomatic cases for UK
+        ## adjusting here by age by using IFRs ratios
+        icu_percent_s = 0.044 * ifr_s / ifr_s['United Kingdom']
+
+        return ifr_s, population_s, icu_percent_s
+
+
+class HostpitalBeds:
+    csv_path = os.path.join(data_folder, 'hospital_beds.csv')
+    page = 'https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds'
 
     @classmethod
     def scrape(cls):
@@ -86,29 +201,10 @@ class WordPopulation:
         return pd.read_html(str(table))[0]
 
     @classmethod
-    def download(cls):
-        df = cls.scrape()
-
-        # clean up df
-        rename_map = {'Country (or dependency)': 'country',
-                      'Population (2020)': 'population',
-                      'Land Area (Km²)': 'area',
-                      'Urban Pop %': 'urban_ratio',
-                      }
-        df_clean = df.rename(rename_map, axis=1)[rename_map.values()]
-        df_clean['urban_ratio'] = pd.to_numeric(df_clean['urban_ratio'].str.extract(r'(\d*)')[0]) / 100
-        df_clean.to_csv(cls.csv_path, index=None)
-
-    @classmethod
     def load(cls):
         if not os.path.exists(cls.csv_path):
             cls.download()
         return pd.read_csv(cls.csv_path)
-
-
-class HostpitalBeds(WordPopulation):
-    csv_path = os.path.join(data_folder, 'hospital_beds.csv')
-    page = 'https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds'
 
     @classmethod
     def download(cls):
@@ -133,7 +229,7 @@ class HostpitalBeds(WordPopulation):
         df_clean = pd.concat([df_clean,
                               df_asia[~df_asia['country'].isin(df_clean['country'])]])
 
-        df_clean.to_csv(cls.csv_path, index=None)
+        df_clean.to_csv(cls.csv_path, index=False)
 
 
 class OverviewData:
@@ -161,18 +257,12 @@ class OverviewData:
     # modeling constants
     ## testing bias
     death_lag = 8
-    # additional updated data with discussions about CFRs:
-    # https://www.cebm.net/covid-19/global-covid-19-case-fatality-rates/
-    cfr_lower_bound = 0.0072
 
     ## recovery estimation
     recovery_lagged9_rate = 0.07
     ## sir model
     rec_rate_simple = 0.05
-    ## icu need estimation
-    ## https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf
-    ## 4.4% serious symptomatic cases
-    ICU_ratio = 0.044
+
     ## ICU spare capacity
     # occupancy 66% for us:
     #   https://www.sccm.org/Blog/March-2020/United-States-Resource-Availability-for-COVID-19
@@ -213,18 +303,6 @@ class OverviewData:
         return dft_ct_new_cases.loc[:, cls.dt_cols[cls.LAST_DATE_I - n_days]:cls.dt_cols[cls.LAST_DATE_I]]
 
     @classmethod
-    def populations_df(cls):
-        df_pop = WordPopulation.load().rename(columns={'country': COL_REGION})
-        df_pop[COL_REGION] = df_pop[COL_REGION].map({
-            'United States': 'US',
-            'Czech Republic (Czechia)': 'Czechia',
-            'Taiwan': 'Taiwan*',
-            'State of Palestine': 'West Bank and Gaza',
-            'Côte d\'Ivoire': 'Cote d\'Ivoire',
-        }).fillna(df_pop[COL_REGION])
-        return df_pop.set_index(COL_REGION)
-
-    @classmethod
     def beds_df(cls):
         df_beds = HostpitalBeds.load().rename(columns={'country': COL_REGION})
         df_beds[COL_REGION] = df_beds[COL_REGION].map({
@@ -242,9 +320,10 @@ class OverviewData:
               .sort_values('Cases.new', ascending=False))
         df['Fatality Rate'] /= 100
 
-        df_pop = cls.populations_df()
+        (df['age_adjusted_ifr'],
+         df['population'],
+         df['age_adjusted_icu_percentage']) = AgeAdjustedData.load()
 
-        df['population'] = df_pop['population']
         df.dropna(subset=['population'], inplace=True)
 
         for col, per_100k_col in zip(cls.ABS_COLS, cls.PER_100K_COLS):
@@ -265,11 +344,12 @@ class OverviewData:
             - Recent new cases can be adjusted using the same testing_ratio bias.
         """
 
+        df = cls.overview_table_with_per_100k()
+
         lagged_mortality_rate = (cls.dfc_deaths + 1) / (cls.lagged_cases(cls.death_lag) + 1)
-        testing_bias = lagged_mortality_rate / cls.cfr_lower_bound
+        testing_bias = lagged_mortality_rate / df['age_adjusted_ifr']
         testing_bias[testing_bias < 1] = 1
 
-        df = cls.overview_table_with_per_100k()
         df['lagged_fatality_rate'] = lagged_mortality_rate
         df['testing_bias'] = testing_bias
 
@@ -404,7 +484,9 @@ class OverviewData:
         for day in [1] + list(projection_days):
             ind = day_one + day - 1
             suffix = f'.+{day}d' if day > 1 else ''
-            icu_max = cls.ICU_ratio * 1e5 / df['testing_bias']
+
+            icu_max = df['age_adjusted_icu_percentage'] * 1e5 / df['testing_bias']
+
             df[f'needICU.per100k{suffix}'] = act[ind] * icu_max
             df[f'needICU.per100k{suffix}.max'] = act_max[ind] * icu_max
             df[f'needICU.per100k{suffix}.min'] = act_min[ind] * icu_max
