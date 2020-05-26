@@ -23,7 +23,7 @@
 # - sticky_rank: 0
 # - hide: false
 
-# > Important: This dashboard contains the results of a predictive model that was not built by an epidimiologist.
+# > Important: This dashboard contains the results of a predictive model that was not built by an epidemiologist.
 
 # +
 #hide
@@ -39,7 +39,7 @@ df_all.columns.sort_values()
 
 #hide_input
 from IPython.display import Markdown
-Markdown(f"***Based on data up to: {pd.to_datetime(helper.dt_today).date().isoformat()}***")
+Markdown(f"***Based on data up to: {helper.cur_date}***")
 
 #hide
 geo_helper = covid_helpers.GeoMap
@@ -50,21 +50,21 @@ fig = geo_helper.make_map_figure(df_geo)
 df_geo['affected_ratio.change.monthly.rate'] = (df_geo['affected_ratio.est.+7d'] - 
                                                 df_geo['affected_ratio.est']) * 30 / 7
 
-# + execution={"iopub.execute_input": "2020-05-01T12:16:14.297479Z", "iopub.status.busy": "2020-05-01T12:16:14.226157Z", "iopub.status.idle": "2020-05-01T12:16:14.457572Z", "shell.execute_reply": "2020-05-01T12:16:14.457201Z"} papermill={"duration": 0.238524, "end_time": "2020-05-01T12:16:14.457650", "exception": false, "start_time": "2020-05-01T12:16:14.219126", "status": "completed"} tags=[]
+# +
 #hide
 fig.update_layout(
     updatemenus=[
         dict(
             buttons=[
                 geo_helper.button_dict(
-                    df_geo['infection_rate'], 'Transmition rate<br>percent (blue-red)',
+                    df_geo['infection_rate'], 'Transmission rate<br>percent (blue-red)',
                     colorscale='Bluered', scale_max=10, percent=True,
-                    subtitle='Transmition rate: over 5% (red) spreading, under 5% (blue) recovering',
+                    subtitle='Transmission rate: over 5% (red) spreading, under 5% (blue) recovering',
                     err_series=df_geo['growth_rate_std']),
                 geo_helper.button_dict(
-                    df_geo['infection_rate'], 'Transmition rate<br>percent',
+                    df_geo['infection_rate'], 'Transmission rate<br>percent',
                     colorscale='YlOrRd', scale_max=33, percent=True,
-                    subtitle='Transmition rate (related to R0)',
+                    subtitle='Transmission rate (related to R0)',
                     err_series=df_geo['growth_rate_std']),
                 geo_helper.button_dict(
                     df_geo['Cases.new.per100k.est'], 'Recent cases<br>estimated per 100k',

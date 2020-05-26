@@ -14,7 +14,7 @@
 #     name: python3
 # ---
 
-# + [markdown] papermill={"duration": 0.013695, "end_time": "2020-03-27T06:31:15.895652", "exception": false, "start_time": "2020-03-27T06:31:15.881957", "status": "completed"} tags=[]
+# + [markdown]
 # # ICU Demand and Total Affected Population projections per Country
 # > Modeling current and future ICU demand and percentage of affected population. 
 #
@@ -25,9 +25,9 @@
 # - hide: false
 # -
 
-# > Important: This dashboard contains the results of a predictive model that was not built by an epidimiologist.
+# > Important: This dashboard contains the results of a predictive model that was not built by an epidemiologist.
 
-# + papermill={"duration": 0.330834, "end_time": "2020-03-27T06:31:16.261108", "exception": false, "start_time": "2020-03-27T06:31:15.930274", "status": "completed"} tags=[]
+# +
 #hide
 import pandas as pd
 import covid_helpers
@@ -42,16 +42,16 @@ df.columns
 # -
 
 #hide_input
-from IPython.display import display, Markdown
-Markdown(f"***Based on data up to: {covid_helpers.OverviewData.cur_date}***")
+from IPython.display import Markdown
+Markdown(f"***Based on data up to: {helper.cur_date}***")
 
 # ## Projected need for ICU beds
-# > Countries sorted by current estimated need, split into Growing and Recovering countries by current transmition rate.
+# > Countries sorted by current estimated need, split into Growing and Recovering countries by current tranmission rate.
 #
 # - Details of estimation and prediction calculations are in [Appendix](#appendix).
 # - Column definitions:
 #     - <font size=2><b>Estimated ICU need per 100k population</b>: number of ICU beds estimated to be needed per 100k population by COVID-19 patents.</font>
-#     - <font size=2><b>Estimated daily transmition rate</b>: daily percentage rate of recent infections relative to active infections during last 5 days.</font>
+#     - <font size=2><b>Estimated daily tranmission rate</b>: daily percentage rate of recent infections relative to active infections during last 5 days.</font>
 #     - <font size=2><b>Projected ICU need per 100k in 14 days</b>: self explanatory.</font>
 #     - <font size=2><b>Projected ICU need per 100k in 30 days</b>: self explanatory.</font>
 #     - <font size=2><b>Pre-COVID ICU capacity per 100k</b>: number of ICU beds per 100k population before COVID-19.</font>
@@ -71,7 +71,7 @@ df_pretty['needICU.per100k.+30d'] = stylers.with_errs_float(
 df_pretty['infection_rate'] = stylers.with_errs_ratio(df_pretty, 'infection_rate', 'growth_rate_std')
 
 cols = {'needICU.per100k': 'Estimated<br>current<br>ICU need<br>per 100k<br>population',
-        'infection_rate': 'Estimated<br>daily<br>transmition rate',
+        'infection_rate': 'Estimated<br>daily<br>tranmission rate',
        'needICU.per100k.+14d': 'Projected<br>ICU need<br>per 100k<br>In 14 days', 
        'needICU.per100k.+30d': 'Projected<br>ICU need<br>per 100k<br>In 30 days',               
        'icu_capacity_per100k': 'Pre-COVID<br>ICU<br>capacity<br> per 100k',
@@ -96,12 +96,12 @@ def style_icu_table(df_pretty, filt):
 
 # -
 
-# ### Growing countries (transmition rate above 5%)
+# ### Growing countries (tranmission rate above 5%)
 
 #hide_input
 style_icu_table(df_pretty, df_data['infection_rate'] > 0.05)
 
-# ### Recovering countries (transmition rate below 5%)
+# ### Recovering countries (tranmission rate below 5%)
 
 #hide_input
 style_icu_table(df_pretty, df_data['infection_rate'] <= 0.05)
@@ -114,7 +114,7 @@ style_icu_table(df_pretty, df_data['infection_rate'] <= 0.05)
 # - Column definitions:
 #     - <font size=2><b>Estimated <i>recent</i> cases in last 5 days</b>: self explanatory.</font>
 #     - <font size=2><b>Estimated <i>total</i> affected population percentage</b>: estimated percentage of total population already affected (infected, recovered, or dead).</font>
-#     - <font size=2><b>Estimated daily transmition rate</b>: daily percentage rate of recent infections relative to active infections during last 5 days.</font>
+#     - <font size=2><b>Estimated daily tranmission rate</b>: daily percentage rate of recent infections relative to active infections during last 5 days.</font>
 #     - <font size=2><b>Projected total affected percentage in 14 days</b>: of population.</font>
 #     - <font size=2><b>Projected total affected percentage in 30 days</b>: of population.</font>        
 #     - <font size=2><b>Lagged fatality rate</b>: reported total deaths divided by total cases 8 days ago.</font>
@@ -131,7 +131,7 @@ df_pretty['infection_rate'] = stylers.with_errs_ratio(df_pretty, 'infection_rate
 
 cols = {'Cases.new.est': 'Estimated <br> <i>new</i> cases <br> in last 5 days',        
        'affected_ratio.est': 'Estimated <br><i>total</i><br>affected<br>population<br>percentage',
-       'infection_rate': 'Estimated<br>daily<br>transmition rate',
+       'infection_rate': 'Estimated<br>daily<br>tranmission rate',
        'affected_ratio.est.+14d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 14 days',
        'affected_ratio.est.+30d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 30 days',       
        'lagged_fatality_rate': 'Lagged<br>fatality <br> percentage',
@@ -212,7 +212,7 @@ df[pretty_cols['deaths']] =(df.apply(lambda r: f"\
                          (+<b>{r['Deaths.new.per100k']:,.1f}</b></i>) \
                          ", axis=1))
 
-pretty_cols['rates'] = 'Rates:<br>-Cases<br>-Transmition<br>-Lagged<br>fatality<br>(<i>Reported</i>)'
+pretty_cols['rates'] = 'Rates:<br>-Cases<br>-Transmission<br>-Lagged<br>fatality<br>(<i>Reported</i>)'
 df[pretty_cols['rates']] =(df.apply(lambda r: f" \
                          {r['growth_rate']:,.1%} \
                          ± <font size=1><i>{r['growth_rate_std']:.0%}</i></font><br>\
@@ -249,7 +249,7 @@ df_data[pretty_cols.values()].style\
 #     - Confidence bounds are calculated by from the weighted STD of the growth rate over the last 5 days. Model predictions are calculated for growth rates within 1 STD of the weighted mean. The maximum and minimum values for each day are used as confidence bands.
 #     - For projections (into future) very noisy projections (with broad confidence bounds) are not shown in the tables.
 #     - Recovery probability being 1/20 (for 20 days to recover) where the rate estimated from [Total Outstanding Cases](https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases) is too high (on down-slopes).  
-# - Total case are estimated from deaths in each country:
+# - Total cases are estimated from deaths in each country:
 #     - Each country has different testing policy and capacity and cases are under-reported in some countries. Using an estimated IFR (fatality rate) we can estimate the number of cases some time ago by using the total deaths until today. We can than use this estimation to estimate the testing bias and multiply the current numbers by that.
 #     - IFRs for each country is estimated using the age IFRs from [May 1 New York paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3590771) and [UN demographic data for 2020](https://population.un.org/wpp/Download/Standard/Population/). These IFRs can be found in `df['age_adjusted_ifr']` column. Some examples: US - 0.98%, UK - 1.1%, Qatar - 0.25%, Italy - 1.4%, Japan - 1.6%.    
 #     - The average fatality lag is assumed to be 8 days on average for a case to go from being confirmed positive (after incubation + testing lag) to death. This is the same figure used by ["Estimating The Infected Population From Deaths"](https://covid19dashboards.com/covid-infected/).

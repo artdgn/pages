@@ -691,8 +691,8 @@ class GeoMap:
     def make_map_figure(cls,
                         df_plot_geo,
                         col='infection_rate',
-                        title='Transmition rate<br>percent (blue-red)',
-                        subtitle='Transmition rate: over 5% (red) '
+                        title='Transmission rate<br>percent (blue-red)',
+                        subtitle='Transmission rate: over 5% (red) '
                                  'spreading, under 5% (blue) recovering'):
         import plotly.graph_objects as go
 
@@ -702,7 +702,7 @@ class GeoMap:
                 f"Cases (reported): {r['Cases.total']:,.0f} (+<b>{r['Cases.new']:,.0f}</b>)<br>"
                 f"Cases (estimated): {r['Cases.total.est']:,.0f} (+<b>{r['Cases.new.est']:,.0f}</b>)<br>"
                 f"Affected percent: <b>{r['affected_ratio.est']:.1%}</b><br>"
-                f"Transmition rate: <b>{r['infection_rate']:.1%}</b> ± {r['growth_rate_std']:.1%}<br>"
+                f"Transmission rate: <b>{r['infection_rate']:.1%}</b> ± {r['growth_rate_std']:.1%}<br>"
                 f"Deaths: {r['Deaths.total']:,.0f} (+<b>{r['Deaths.new']:,.0f}</b>)<br>"
             ), axis=1))
 
