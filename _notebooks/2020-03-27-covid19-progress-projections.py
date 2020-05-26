@@ -54,8 +54,8 @@ Markdown(f"***Based on data up to: {covid_helpers.OverviewData.cur_date}***")
 #     - <font size=2><b>Estimated daily transmition rate</b>: daily percentage rate of recent infections relative to active infections during last 5 days.</font>
 #     - <font size=2><b>Projected ICU need per 100k in 14 days</b>: self explanatory.</font>
 #     - <font size=2><b>Projected ICU need per 100k in 30 days</b>: self explanatory.</font>
-#     - <font size=2><b>ICU capacity per 100k</b>: number of ICU beds per 100k population.</font>
-#     - <font size=2><b>Estimated ICU Spare capacity per 100k</b>: estimated ICU capacity per 100k population based on assumed normal occupancy rate of 70% and number of ICU beds (only for countries with ICU beds data).</font>
+#     - <font size=2><b>Pre-COVID ICU capacity per 100k</b>: number of ICU beds per 100k population before COVID-19.</font>
+#     - <font size=2><b>Estimated Pre-COVID ICU Spare capacity per 100k</b>: estimated ICU capacity per 100k population before COVID-19 based on assumed normal occupancy rate of 70% and number of ICU beds (only for countries with ICU beds data).</font>
 #     
 
 # > Tip: The <b><font color="b21e3e">red (need for ICU)</font></b>  and the <b><font color="3ab1d8">blue (ICU spare capacity)</font></b>  bars are on the same 0-10 scale, for easy visual comparison of columns.
@@ -74,8 +74,8 @@ cols = {'needICU.per100k': 'Estimated<br>current<br>ICU need<br>per 100k<br>popu
         'infection_rate': 'Estimated<br>daily<br>transmition rate',
        'needICU.per100k.+14d': 'Projected<br>ICU need<br>per 100k<br>In 14 days', 
        'needICU.per100k.+30d': 'Projected<br>ICU need<br>per 100k<br>In 30 days',               
-       'icu_capacity_per100k': 'ICU<br>capacity<br> per 100k',
-       'icu_spare_capacity_per100k': 'Estimated ICU<br>Spare capacity<br>per 100k',               
+       'icu_capacity_per100k': 'Pre-COVID<br>ICU<br>capacity<br> per 100k',
+       'icu_spare_capacity_per100k': 'Pre-COVID<br>Estimated ICU<br>Spare capacity<br>per 100k',               
       }
 
 def style_icu_table(df_pretty, filt):
@@ -249,12 +249,15 @@ df_data[pretty_cols.values()].style\
 #     - Confidence bounds are calculated by from the weighted STD of the growth rate over the last 5 days. Model predictions are calculated for growth rates within 1 STD of the weighted mean. The maximum and minimum values for each day are used as confidence bands.
 #     - For projections (into future) very noisy projections (with broad confidence bounds) are not shown in the tables.
 #     - Recovery probability being 1/20 (for 20 days to recover) where the rate estimated from [Total Outstanding Cases](https://covid19dashboards.com/outstanding_cases/#Appendix:-Methodology-of-Predicting-Recovered-Cases) is too high (on down-slopes).  
-# - ICU need is calculated as being [4.4% of active reported cases](https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf) where:
-#     - Active cases are taken from the SIR model. The ICU need is calculated from reported cases rather than from total estimated active cases. This is because the ICU ratio (4.4%) is based on symptomatic reported cases.
-#     - ICU capacities are from [Wikipedia](https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds) (OECD countries mostly) and [CCB capacities in Asia](https://www.researchgate.net/publication/338520008_Critical_Care_Bed_Capacity_in_Asian_Countries_and_Regions).
-#     - ICU spare capacity is based on 70% normal occupancy rate ([66% in US](https://www.sccm.org/Blog/March-2020/United-States-Resource-Availability-for-COVID-19), [75% OECD](https://www.oecd-ilibrary.org/social-issues-migration-health/health-at-a-glance-2019_4dd50c09-en))
-# - Total case estimation calculated from deaths by:
-#     - Assuming that unbiased fatality rate is 0.72% ([current meta estimate in](https://www.cebm.net/covid-19/global-covid-19-case-fatality-rates/)). 
+# - Total case are estimated from deaths in each country:
+#     - Each country has different testing policy and capacity and cases are under-reported in some countries. Using an estimated IFR (fatality rate) we can estimate the number of cases some time ago by using the total deaths until today. We can than use this estimation to estimate the testing bias and multiply the current numbers by that.
+#     - IFRs for each country is estimated using the age IFRs from [May 1 New York paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3590771) and [UN demographic data for 2020](https://population.un.org/wpp/Download/Standard/Population/). These IFRs can be found in `df['age_adjusted_ifr']` column. Some examples: US - 0.98%, UK - 1.1%, Qatar - 0.25%, Italy - 1.4%, Japan - 1.6%.    
 #     - The average fatality lag is assumed to be 8 days on average for a case to go from being confirmed positive (after incubation + testing lag) to death. This is the same figure used by ["Estimating The Infected Population From Deaths"](https://covid19dashboards.com/covid-infected/).
-#     - Testing bias: the actual lagged fatality rate is than divided by the 0.72% figure to estimate the testing bias in a country. The estimated testing bias then multiplies the reported case numbers to estimate the *true* case numbers (*=case numbers if testing coverage was as comprehensive as in the heavily tested countries*).
-#     - The testing bias calculation is a high source of uncertainty in all these estimations and projections. Better source of testing bias (or just *true case* numbers), should make everything more accurate.  
+#     - Testing bias: the actual lagged fatality rate is than divided by the IFR to estimate the testing bias in a country. The estimated testing bias then multiplies the reported case numbers to estimate the *true* case numbers (*=case numbers if testing coverage was as comprehensive as in the heavily tested countries*).
+# - ICU need is calculated and age-adjusted as follows:
+#     - UK ICU ratio was reported as [4.4% of active reported cases](https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf).
+#     - Using UKs ICU ratio and IFRs corrected for age demographics we can estimate each country's ICU ratio (the number of cases requiring ICU hospitalisation). For example using the IFR ratio between UK and Qatar to devide UK's 4.4% we get an ICU ratio of around 1% for Qatar which is also the ratio [they report to WHO here](https://apps.who.int/gb/COVID-19/pdf_files/30_04/Qatar.pdf).
+#     - Active cases are taken from the SIR model. The ICU need is calculated from reported cases rather than from total estimated active cases. This is because the ICU ratio (4.4%) is based on reported cases.
+#     - Pre COVID-19 ICU capacities are from [Wikipedia](https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds) (OECD countries mostly) and [CCB capacities in Asia](https://www.researchgate.net/publication/338520008_Critical_Care_Bed_Capacity_in_Asian_Countries_and_Regions).
+#     - Pre COVID-19 ICU spare capacity is based on 70% normal occupancy rate ([66% in US](https://www.sccm.org/Blog/March-2020/United-States-Resource-Availability-for-COVID-19), [75% OECD](https://www.oecd-ilibrary.org/social-issues-migration-health/health-at-a-glance-2019_4dd50c09-en))
+#  

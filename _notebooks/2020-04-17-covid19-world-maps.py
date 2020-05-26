@@ -143,8 +143,9 @@ fig.update_layout(
                     subtitle='Projected ICU need per 100k population in 30 days',
                     err_series=df_geo['needICU.per100k.+30d.err']),
                 geo_helper.button_dict(
-                    df_geo['icu_capacity_per100k'], 'ICU Capacity', colorscale='Blues',
-                    subtitle='ICU capacity per 100k population'),
+                    df_geo['icu_capacity_per100k'], 'Pre-COVID<br>ICU Capacity', 
+                    colorscale='Blues',
+                    subtitle='Pre-COVID ICU capacity per 100k population'),
             ],
             direction="down", bgcolor='#efdaee',
             pad={"r": 10, "t": 10},
