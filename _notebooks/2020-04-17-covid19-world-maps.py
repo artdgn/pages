@@ -30,8 +30,8 @@
 import pandas as pd
 import covid_helpers
 
-helper = covid_helpers.OverviewData
-df_all = helper.table_with_projections()
+covid_data = covid_helpers.CovidData()
+df_all = covid_data.table_with_projections()
 # -
 
 #hide
@@ -39,7 +39,7 @@ df_all.columns.sort_values()
 
 #hide_input
 from IPython.display import Markdown
-Markdown(f"***Based on data up to: {helper.cur_date}***")
+Markdown(f"***Based on data up to: {covid_data.cur_date}***")
 
 #hide
 geo_helper = covid_helpers.GeoMap

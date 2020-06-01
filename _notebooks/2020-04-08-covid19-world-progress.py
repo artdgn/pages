@@ -31,14 +31,14 @@
 import pandas as pd
 import covid_helpers
 
-helper = covid_helpers.OverviewData
+covid_data = covid_helpers.CovidData()
 stylers = covid_helpers.PandasStyling
-df_all = helper.table_with_projections()
+df_all = covid_data.table_with_projections()
 # -
 
 #hide_input
 from IPython.display import Markdown
-Markdown(f"***Based on data up to: {helper.cur_date}***")
+Markdown(f"***Based on data up to: {covid_data.cur_date}***")
 
 # ## For details per country see [main notebook](/pages/covid-progress-projections/)
 
@@ -50,14 +50,14 @@ Markdown(f"***Based on data up to: {helper.cur_date}***")
 
 # +
 #hide
-_, debug_dfs = helper.table_with_projections(debug_dfs=True)
+_, debug_dfs = covid_data.table_with_projections(debug_dfs=True)
 
 df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
 # -
 
 #hide
-df_tot = df_alt.rename(columns={'country': helper.COL_REGION}
-                      ).set_index(helper.COL_REGION)
+df_tot = df_alt.rename(columns={'country': covid_data.COL_REGION}
+                      ).set_index(covid_data.COL_REGION)
 df_tot['population'] = df_all['population']
 for c in df_tot.columns[df_alt.dtypes == float]:
     df_tot[c + '-total'] = df_tot[c] * df_tot['population']
@@ -70,8 +70,8 @@ df_tot.columns = [c.replace('.', '-') for c in df_tot.columns]
 df_tot = df_tot[df_tot['day'].between(-30, 30) | (df_tot['day'] % 10 == 0)]
 
 # filter out noisy countries for actively infected plot:
-df_filt = helper.filter_df(df_all)
-df_tot_filt = df_tot[df_tot[helper.COL_REGION].isin(df_filt.index.unique())]
+df_filt = covid_data.filter_df(df_all)
+df_tot_filt = df_tot[df_tot[covid_data.COL_REGION].isin(df_filt.index.unique())]
 
 # +
 #hide_input
@@ -86,8 +86,8 @@ today_line = (alt.Chart(pd.DataFrame({'x': [0]}))
 # make plot
 max_y = df_tot_filt[df_tot_filt['day']==30]['Infected-min-total'].sum()
 stacked_inf = alt.Chart(df_tot_filt).mark_area().encode(
-    x=alt.X('day:Q', 
-            title=f'days relative to today ({helper.cur_date})',
+    x=alt.X('day:Q',
+            title=f'days relative to today ({covid_data.cur_date})',
             scale=alt.Scale(domain=(-30, 30))),
     y=alt.Y("Infected-min-total:Q", stack=True, title="Number of people",
            scale=alt.Scale(domain=(0, max_y))),
@@ -103,8 +103,8 @@ stacked_inf = alt.Chart(df_tot_filt).mark_area().encode(
 #hide_input
 max_y = df_tot_filt[df_tot_filt['day']==30]['Removed-min-total'].sum()
 stacked_rem = alt.Chart(df_tot_filt).mark_area().encode(
-    x=alt.X('day:Q', 
-            title=f'days relative to today ({helper.cur_date})',
+    x=alt.X('day:Q',
+            title=f'days relative to today ({covid_data.cur_date})',
             scale=alt.Scale(domain=(-30, 30))),
     y=alt.Y("Removed-min-total:Q", stack=True, title="Number of people",
            scale=alt.Scale(domain=(0, max_y))),
@@ -121,8 +121,8 @@ stacked_rem = alt.Chart(df_tot_filt).mark_area().encode(
 #hide_input
 max_y = df_tot[df_tot['day']==1]['Susceptible-total'].sum()
 stacked_sus = alt.Chart(df_tot).mark_area().encode(
-    x=alt.X('day:Q', 
-            title=f'days relative to today ({helper.cur_date})',
+    x=alt.X('day:Q',
+            title=f'days relative to today ({covid_data.cur_date})',
             scale=alt.Scale(domain=(-30, 30))),
     y=alt.Y("Susceptible-max-total:Q", stack=True, 
             scale=alt.Scale(domain=(0, max_y)),
