@@ -35,10 +35,8 @@ import covid_helpers
 
 covid_data = covid_helpers.CovidData()
 stylers = covid_helpers.PandasStyling
-df_all = covid_data.table_with_projections()
-df_filt = covid_data.filter_df(df_all)
-df = df_filt.rename(index={'Bosnia and Herzegovina': 'Bosnia',
-                           'United Arab Emirates': 'UAE'})
+df_filt = covid_data.filter_df(covid_data.table_with_projections())
+df = covid_data.rename_long_names(df_filt)
 df.columns
 # -
 

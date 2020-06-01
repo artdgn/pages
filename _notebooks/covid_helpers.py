@@ -58,7 +58,6 @@ class SourceData:
         return df.columns[~df.columns.isin(['Province/State', COL_REGION, 'Lat', 'Long'])]
 
 
-
 class AgeAdjustedData:
     # https://population.un.org/wpp/Download/Standard/Population/
     # https://population.un.org/wpp/Download/Files/1_Indicators%20(Standard)/EXCEL_FILES/1_Population/WPP2019_POP_F07_1_POPULATION_BY_AGE_BOTH_SEXES.xlsx
@@ -256,8 +255,7 @@ class CovidData:
 
     def __init__(self, days_offset=0):
         assert days_offset <= 0, 'day_offest can only be 0 or negative (in the past)'
-        self.days_offset = days_offset
-        self.dt_cols = self.dt_cols_all[:(len(self.dt_cols_all) - days_offset)]
+        self.dt_cols = self.dt_cols_all[:(len(self.dt_cols_all) + days_offset)]
         self.dfc_cases = self.dft_cases.groupby(COL_REGION)[self.dt_cols[-1]].sum()
         self.dfc_deaths = self.dft_deaths.groupby(COL_REGION)[self.dt_cols[-1]].sum()
 
@@ -353,6 +351,11 @@ class CovidData:
         return df[((df['Cases.total'] > cases_filter) |
                    (df['Deaths.total'] > deaths_filter)) &
                   (df['population'] > population_filter)][df.columns.sort_values()]
+
+    @classmethod
+    def rename_long_names(cls, df):
+        return df.rename(index={'Bosnia and Herzegovina': 'Bosnia',
+                                'United Arab Emirates': 'UAE'})
 
     def smoothed_growth_rates(self, n_days):
         recent_dates = self.dt_cols[-n_days:]
