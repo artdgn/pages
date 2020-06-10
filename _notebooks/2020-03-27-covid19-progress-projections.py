@@ -45,12 +45,12 @@ from IPython.display import Markdown
 Markdown(f"***Based on data up to: {covid_data.cur_date}***")
 
 # ## Projected need for ICU beds
-# > Countries sorted by current estimated need, split into Growing and Recovering countries by current tranmission rate.
+# > Countries sorted by current estimated need, split into Growing and Recovering countries by current transmission rate.
 #
 # - Details of estimation and prediction calculations are in [Appendix](#appendix).
 # - Column definitions:
 #     - <font size=2><b>Estimated ICU need per 100k population</b>: number of ICU beds estimated to be needed per 100k population by COVID-19 patents.</font>
-#     - <font size=2><b>Estimated daily tranmission rate</b>: daily percentage rate of recent infections relative to active infections during last 5 days.</font>
+#     - <font size=2><b>Estimated daily transmission rate</b>: daily percentage rate of recent infections relative to active infections during last 5 days.</font>
 #     - <font size=2><b>Projected ICU need per 100k in 14 days</b>: self explanatory.</font>
 #     - <font size=2><b>Projected ICU need per 100k in 30 days</b>: self explanatory.</font>
 #     - <font size=2><b>Pre-COVID ICU capacity per 100k</b>: number of ICU beds per 100k population before COVID-19.</font>
@@ -70,7 +70,7 @@ df_pretty['needICU.per100k.+30d'] = stylers.with_errs_float(
 df_pretty['infection_rate'] = stylers.with_errs_ratio(df_pretty, 'infection_rate', 'growth_rate_std')
 
 cols = {'needICU.per100k': 'Estimated<br>current<br>ICU need<br>per 100k<br>population',
-        'infection_rate': 'Estimated<br>daily<br>tranmission rate',
+        'infection_rate': 'Estimated<br>daily<br>transmission<br>rate',
        'needICU.per100k.+14d': 'Projected<br>ICU need<br>per 100k<br>In 14 days', 
        'needICU.per100k.+30d': 'Projected<br>ICU need<br>per 100k<br>In 30 days',               
        'icu_capacity_per100k': 'Pre-COVID<br>ICU<br>capacity<br> per 100k',
@@ -95,12 +95,12 @@ def style_icu_table(df_pretty, filt):
 
 # -
 
-# ### Growing countries (tranmission rate above 5%)
+# ### Growing countries (transmission rate above 5%)
 
 #hide_input
 style_icu_table(df_pretty, df_data['infection_rate'] > 0.05)
 
-# ### Recovering countries (tranmission rate below 5%)
+# ### Recovering countries (transmission rate below 5%)
 
 #hide_input
 style_icu_table(df_pretty, df_data['infection_rate'] <= 0.05)
@@ -113,7 +113,7 @@ style_icu_table(df_pretty, df_data['infection_rate'] <= 0.05)
 # - Column definitions:
 #     - <font size=2><b>Estimated <i>recent</i> cases in last 5 days</b>: self explanatory.</font>
 #     - <font size=2><b>Estimated <i>total</i> affected population percentage</b>: estimated percentage of total population already affected (infected, recovered, or dead).</font>
-#     - <font size=2><b>Estimated daily tranmission rate</b>: daily percentage rate of recent infections relative to active infections during last 5 days.</font>
+#     - <font size=2><b>Estimated daily transmission rate</b>: daily percentage rate of recent infections relative to active infections during last 5 days.</font>
 #     - <font size=2><b>Projected total affected percentage in 14 days</b>: of population.</font>
 #     - <font size=2><b>Projected total affected percentage in 30 days</b>: of population.</font>        
 #     - <font size=2><b>Lagged fatality rate</b>: reported total deaths divided by total cases 8 days ago.</font>
@@ -130,7 +130,7 @@ df_pretty['infection_rate'] = stylers.with_errs_ratio(df_pretty, 'infection_rate
 
 cols = {'Cases.new.est': 'Estimated <br> <i>new</i> cases <br> in last 5 days',        
        'affected_ratio.est': 'Estimated <br><i>total</i><br>affected<br>population<br>percentage',
-       'infection_rate': 'Estimated<br>daily<br>tranmission rate',
+       'infection_rate': 'Estimated<br>daily<br>transmission<br>rate',
        'affected_ratio.est.+14d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 14 days',
        'affected_ratio.est.+30d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 30 days',       
        'lagged_fatality_rate': 'Lagged<br>fatality <br> percentage',

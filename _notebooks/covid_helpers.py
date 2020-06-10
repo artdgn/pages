@@ -355,7 +355,9 @@ class CovidData:
     @classmethod
     def rename_long_names(cls, df):
         return df.rename(index={'Bosnia and Herzegovina': 'Bosnia',
-                                'United Arab Emirates': 'UAE'})
+                                'United Arab Emirates': 'UAE',
+                                'Central African Republic': 'CAR (Africa)',
+                                })
 
     def smoothed_growth_rates(self, n_days):
         recent_dates = self.dt_cols[-n_days:]
