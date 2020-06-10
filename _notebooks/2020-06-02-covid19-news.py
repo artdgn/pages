@@ -14,11 +14,12 @@
 #     name: python3
 # ---
 
-# # News (bad / good)
+# # News (bad vs. good)
 # > Signigicant changes since 10 days ago in transmission rates, ICU demand, and case / deaths data.
 #
 # - permalink: /covid-news/
 # - toc: true
+# - image: images/news.png
 # - sticky_rank: 0
 # - hide: false
 
@@ -147,7 +148,7 @@ style_news_infections(df_data.loc[new_outbreaks])
 #
 # - Countries are sorted by size of change in tranmission rate.
 # - Includes only countries that were previously active (more than 100 estimated new cases).
-# - "Large increase" = at least -1% change.
+# - "Large decrease" = at least -1% change.
 
 #hide_input
 lower_trans = ((df_cur['infection_rate'] > 0.02) & 
