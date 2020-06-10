@@ -15,7 +15,7 @@
 # ---
 
 # # News (bad vs. good)
-# > Signigicant changes since 10 days ago in transmission rates, ICU demand, and case / deaths data.
+# > Signigicant changes vs. 10 days ago in transmission rates, ICU demand, and case / deaths data.
 #
 # - permalink: /covid-news/
 # - toc: true
@@ -23,7 +23,7 @@
 # - sticky_rank: 0
 # - hide: false
 
-# > Note: For per country details, projections, and for methodology see [main notebook](/pages/covid-progress-projections/)
+# > Note: For per country details projections, and for methodology see [main notebook](/pages/covid-progress-projections/)
 
 # +
 #hide
@@ -40,10 +40,11 @@ stylers = covid_helpers.PandasStyling
 day_diff = 10
 
 cur_data = covid_helpers.CovidData()
-df_cur = cur_data.rename_long_names(cur_data.filter_df(cur_data.table_with_projections()))
+df_cur_all, debug_dfs = cur_data.table_with_projections(debug_dfs=True)
+df_cur = cur_data.filter_df(df_cur_all)
 
 past_data = covid_helpers.CovidData(-day_diff)
-df_past = past_data.rename_long_names(past_data.filter_df(past_data.table_with_projections()))
+df_past = past_data.filter_df(past_data.table_with_projections())
 # -
 
 #hide_input
@@ -63,7 +64,7 @@ df_data['needICU.per100k_past'] = df_past['needICU.per100k']
 # +
 #hide
 def large_index(df):
-    df = df.copy()
+    df = cur_data.rename_long_names(df)
     df.index = df.index.to_series().apply(lambda s: f'<font size=3><b>{s}</b></font>')
     return df
 
@@ -126,7 +127,7 @@ def style_basic(df):
 
 # # Transmission rate:
 
-# ## Bad news: new waves
+# ## &#128078; <font color=red>Bad</font> news: new waves
 # > Large increase in transmission rate vs. 10 days ago, that might mean a relapse, new wave, worsening outbreak. 
 #
 # - Countries are sorted by size of change in tranmission rate.
@@ -140,10 +141,64 @@ higher_trans = ((df_cur['infection_rate'] > 0.02) &
         (df_cur['Cases.new.est'] > 100) &
         (rate_diff > 0.01) &
         (pct_rate_diff > 3))
-new_outbreaks = rate_diff[higher_trans].sort_values(ascending=False).index
-style_news_infections(df_data.loc[new_outbreaks])
+new_waves = rate_diff[higher_trans].sort_values(ascending=False).index
+style_news_infections(df_data.loc[new_waves])
 
-# ## Good news: slowing waves
+# +
+#hide
+import altair as alt
+alt.data_transformers.disable_max_rows()
+
+df_alt_all = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
+
+def infected_plots(countries, title, days_back=60):
+    df_alt = df_alt_all[df_alt_all['day'].between(-days_back, 0) & 
+                        (df_alt_all['country'].isin(countries))]
+
+    select_country = alt.selection_single(
+        name='Select',
+        fields=['country'],
+        bind='legend',
+        empty='all',
+        init={'country': countries[0]}
+    )
+
+    today_line = (alt.Chart(pd.DataFrame({'x': [-10]}))
+                  .mark_rule(color='#c8d1ce')
+                  .encode(x='x', strokeWidth=alt.value(6), opacity=alt.value(0.5)))
+    
+    lines = (alt.Chart(df_alt).mark_line().encode(
+        x=alt.X('day:Q', 
+                scale=alt.Scale(type='symlog'),
+                axis=alt.Axis(labelOverlap='greedy', values=list(range(-days_back, 0, 5)),
+                title=f'days relative to today ({cur_data.cur_date})')),
+        y=alt.Y('Infected:Q',
+                scale=alt.Scale(type='log'),
+                axis=alt.Axis(format='%', title='Infected percentage'),
+               ),
+        color=alt.Color('country:N', 
+                        legend=alt.Legend(title='Country',
+                                          labelFontSize=14,
+                                          values=countries.to_list())),
+        opacity=alt.condition(select_country, alt.value(1), alt.value(0.4)),
+        strokeWidth=alt.condition(select_country, alt.value(4), alt.value(2)))
+     )
+
+    return ((lines + today_line)
+     .add_selection(select_country)
+     .configure_title(fontSize=20)
+     .configure_axis(labelFontSize=15, titleFontSize=18, grid=True)
+     .properties(title=title, width=550, height=340).interactive(bind_x=False))
+
+
+# -
+
+# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+
+#hide_input
+infected_plots(new_waves, "Countries with new waves (vs. 10 days ago)")
+
+# ## &#128077; <font color=green>Good</font> news: slowing waves
 # > Large decrease in transmission rate vs. 10 days ago, that might mean a slowing down / effective control measures.
 #
 # - Countries are sorted by size of change in tranmission rate.
@@ -158,9 +213,14 @@ lower_trans = ((df_cur['infection_rate'] > 0.02) &
 slowing_outbreaks = rate_diff[lower_trans].sort_values().index
 style_news_infections(df_data.loc[slowing_outbreaks])
 
+# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+
+#hide_input
+infected_plots(slowing_outbreaks, "Countries with slowing waves (vs. 10 days ago)")
+
 # # ICU need
 
-# ## Bad news: higher ICU need
+# ## &#128078; <font color=red>Bad</font> news: higher ICU need
 # > Large increases in need for ICU beds per 100k population vs. 10 days ago.
 #
 # - Only countries for which the ICU need increased by more than 0.5 (per 100k).
@@ -170,7 +230,12 @@ icu_diff = df_cur['needICU.per100k'] - df_past['needICU.per100k']
 icu_increase = icu_diff[icu_diff > 0.5].sort_values(ascending=False).index
 style_news_icu(df_data.loc[icu_increase])
 
-# ## Good news: lower ICU need
+# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+
+#hide_input
+infected_plots(icu_increase, "Countries with Higher ICU need (vs. 10 days ago)")
+
+# ## &#128077; <font color=green>Good</font> news: lower ICU need
 # > Large decreases in need for ICU beds per 100k population vs. 10 days ago.
 #
 # - Only countries for which the ICU need decreased by more than 0.5 (per 100k).
@@ -179,16 +244,26 @@ style_news_icu(df_data.loc[icu_increase])
 icu_decrease = icu_diff[icu_diff < -0.5].sort_values().index
 style_news_icu(df_data.loc[icu_decrease])
 
+# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+
+#hide_input
+infected_plots(icu_decrease, "Countries with Lower ICU need (vs. 10 days ago)")
+
 # # Cases and deaths
 
-# ## Bad news: new first outbreaks
-# > Countries that have started their first outbreak (crossed 1000 total reported cases or 20 deaths) vs. 10 days ago.
+# ## &#128078; <font color=red>Bad</font> news: new first significant outbreaks
+# > Countries that have started their first significant outbreak (crossed 1000 total reported cases or 20 deaths) vs. 10 days ago.
 
 #hide_input
 new_entries = df_cur.index[~df_cur.index.isin(df_past.index)]
 style_news_infections(df_data.loc[new_entries])
 
-# ## Good news: no new cases or deaths
+# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+
+#hide_input
+infected_plots(new_entries, "Countries with first large outbreak (vs. 10 days ago)")
+
+# ## &#128077; <font color=green>Good</font> news: no new cases or deaths
 # > New countries with no new cases or deaths vs. 10 days ago.
 #
 # - Only considering countries that had at least 1000 estimated total cases and at least 10 total deaths and had and active outbreak previously.
@@ -206,6 +281,11 @@ no_cases_and_deaths = df_cur.loc[no_cases_filt & no_deaths_filt &
 style_basic(df_data.loc[no_cases_and_deaths])
 # -
 
+# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+
+#hide_input
+infected_plots(no_cases_and_deaths, "New countries with no new cases or deaths (vs. 10 days ago)")
+
 # ## Mixed news: no new deaths, only new cases
 # > New countries with no new deaths (only new cases) vs. 10 days ago.
 #
@@ -216,12 +296,37 @@ no_deaths = df_cur.loc[no_deaths_filt & (~no_cases_filt) &
                        significant_past & active_in_past].index
 style_news_infections(df_data.loc[no_deaths])
 
+# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+
+#hide_input
+infected_plots(no_deaths, "Countries with only new cases (vs. 10 days ago)")
+
 # ## No news: continously inactive countries
-# > Countries that have been inactive continuously previously (10 days ago), and still are now.
+# > Countries that had no new cases or deaths 10 days ago or now.
 #
 # - Only considering countries that had at least 1000 estimated total cases and at least 10 total deaths.
-# - These countries may have stopped reporting data like [Tanzania](https://en.wikipedia.org/wiki/COVID-19_pandemic_in_Tanzania).
+# - Caveat: these countries may have stopped reporting data like [Tanzania](https://en.wikipedia.org/wiki/COVID-19_pandemic_in_Tanzania).
 
 #hide_input
 not_active = df_cur.loc[no_cases_filt & significant_past & ~active_in_past].index
 style_basic(df_data.loc[not_active])
+
+# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+
+#hide_input
+infected_plots(not_active, "Continuosly inactive countries (now and 10 days ago)")
+
+# # Extras:
+# ## Future model projections plots
+# > For countries in any of the above groups. To see more details and methodology go to [main notebook](/pages/covid-progress-projections/)
+
+# > Tip: Choose country from the drop-down below the graph.
+
+#hide_input
+all_news = (new_waves, slowing_outbreaks, 
+            icu_increase, icu_decrease,
+            not_active, no_deaths, no_cases_and_deaths, new_entries)
+news_countries = [c for g in all_news for c in g]
+df_alt_filt = df_alt_all[(df_alt_all['day'] > -60) & 
+                         (df_alt_all['country'].isin(news_countries))]
+covid_helpers.altair_sir_plot(df_alt_filt, new_waves[0])

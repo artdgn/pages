@@ -47,6 +47,7 @@ class SourceData:
     @classmethod
     def get_covid_dataframe(cls, name):
         df = cls._download_covid_df(name)
+        # df = cls._load_covid_df(name)  # use in case of github outage / data errors
         cls._save_covid_df(df, name)
 
         # rename countries
