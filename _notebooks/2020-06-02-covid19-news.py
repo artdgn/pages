@@ -14,7 +14,7 @@
 #     name: python3
 # ---
 
-# # News (bad vs. good)
+# # News from data (bad & good)
 # > Signigicant changes vs. 10 days ago in transmission rates, ICU demand, and case / deaths data.
 #
 # - permalink: /covid-news/
@@ -135,8 +135,15 @@ def style_basic(df):
 # - Includes only countries that were previously active (more than 100 estimated new cases).
 # - "Large increase" = at least +1% change.
 
+# +
 #hide_input
-rate_diff = df_cur['infection_rate'] - df_past['infection_rate']
+# optimistic rates
+rate_past_opt = df_past['infection_rate'] - df_past['growth_rate_std']
+rate_past_opt[rate_past_opt < 0] = 0
+rate_cur_opt = df_cur['infection_rate'] - df_cur['growth_rate_std']
+rate_cur_opt[rate_cur_opt < 0] = 0
+
+rate_diff = rate_cur_opt - rate_past_opt
 pct_rate_diff = rate_diff / df_past['growth_rate_std']
 higher_trans = ((df_cur['infection_rate'] > 0.02) & 
         (df_cur['Cases.new.est'] > 100) &
