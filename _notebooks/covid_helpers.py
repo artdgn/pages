@@ -266,6 +266,21 @@ class CovidData:
     def lagged_deaths(self, lag=PREV_LAG):
         return self.dft_deaths.groupby(COL_REGION)[self.dt_cols[-lag]].sum()
 
+    def add_last_dates(self, df):
+
+        def last_date(s):
+            non_zero_s = s[4:][s[4:] > 0]
+            if len(non_zero_s):
+                return pd.to_datetime(non_zero_s.index[-1]).date().isoformat()
+            else:
+                return float('nan')
+
+        df['last_case_date'] = (self.dft_cases.groupby(COL_REGION).sum().diff(axis=1)
+                                .apply(last_date, axis=1))
+        df['last_death_date'] = (self.dft_deaths.groupby(COL_REGION).sum().diff(axis=1)
+                                .apply(last_date, axis=1))
+        return df
+
     def overview_table(self):
         df_table = (pd.DataFrame({'Cases.total': self.dfc_cases,
                                   'Deaths.total': self.dfc_deaths,
@@ -293,12 +308,14 @@ class CovidData:
         }).fillna(df_beds[COL_REGION])
         return df_beds.set_index(COL_REGION)
 
-    def overview_table_with_per_100k(self):
+    def overview_table_with_extra_data(self):
         df = (self.overview_table()
               .drop(['Cases.total.prev', 'Deaths.total.prev'], axis=1)
               .set_index(COL_REGION, drop=True)
               .sort_values('Cases.new', ascending=False))
         df['Fatality Rate'] /= 100
+
+        df = self.add_last_dates(df)
 
         (df['age_adjusted_ifr'],
          df['population'],
@@ -323,7 +340,7 @@ class CovidData:
             - Recent new cases can be adjusted using the same testing_ratio bias.
         """
 
-        df = self.overview_table_with_per_100k()
+        df = self.overview_table_with_extra_data()
 
         lagged_mortality_rate = (self.dfc_deaths + 1) / (self.lagged_cases(self.death_lag) + 1)
         testing_bias = lagged_mortality_rate / df['age_adjusted_ifr']

@@ -117,7 +117,9 @@ def style_news_icu(df):
 def style_basic(df):
     cols = {
         'Cases.total.est': 'Estimated<br>total<br>cases',
-        'Deaths.total': 'Total<br>reported<br>deaths'
+        'Deaths.total': 'Total<br>reported<br>deaths',
+        'last_case_date': 'Date<br>of last<br>reported case',
+        'last_death_date': 'Date<br>of last<br>reported death',
       }  
     return (large_index(df)[cols.keys()].rename(columns=cols).style
         .format('<b>{:,.0f}</b>', subset=[cols['Cases.total.est'], cols['Deaths.total']]))
