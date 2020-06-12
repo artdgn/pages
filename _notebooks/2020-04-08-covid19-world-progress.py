@@ -84,29 +84,29 @@ today_line = (alt.Chart(pd.DataFrame({'x': [0]}))
                   .encode(x='x', size=alt.value(1)))
 
 # make plot
-max_y = df_tot_filt[df_tot_filt['day']==30]['Infected-min-total'].sum()
+max_y = df_tot_filt[df_tot_filt['day']==30]['Infected-total'].sum()
 stacked_inf = alt.Chart(df_tot_filt).mark_area().encode(
     x=alt.X('day:Q',
             title=f'days relative to today ({covid_data.cur_date})',
             scale=alt.Scale(domain=(-30, 30))),
-    y=alt.Y("Infected-min-total:Q", stack=True, title="Number of people",
+    y=alt.Y("Infected-total:Q", stack=True, title="Number of people",
            scale=alt.Scale(domain=(0, max_y))),
     color=alt.Color("Country/Region:N", legend=None),
     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed'],    
 )
 (stacked_inf + today_line).interactive()\
 .properties(width=650, height=340)\
-.properties(title='Actively infected (conservative estimate)')\
+.properties(title='Actively infected')\
 .configure_title(fontSize=20)
 
 # +
 #hide_input
-max_y = df_tot_filt[df_tot_filt['day']==30]['Removed-min-total'].sum()
+max_y = df_tot_filt[df_tot_filt['day']==30]['Removed-total'].sum()
 stacked_rem = alt.Chart(df_tot_filt).mark_area().encode(
     x=alt.X('day:Q',
             title=f'days relative to today ({covid_data.cur_date})',
             scale=alt.Scale(domain=(-30, 30))),
-    y=alt.Y("Removed-min-total:Q", stack=True, title="Number of people",
+    y=alt.Y("Removed-total:Q", stack=True, title="Number of people",
            scale=alt.Scale(domain=(0, max_y))),
     color=alt.Color("Country/Region:N", legend=None),
     tooltip=['Country/Region', 'Susceptible', 'Infected', 'Removed']
@@ -114,7 +114,7 @@ stacked_rem = alt.Chart(df_tot_filt).mark_area().encode(
 
 (stacked_rem + today_line).interactive()\
 .properties(width=650, height=340)\
-.properties(title='Recovered or dead (conservative estimate)')\
+.properties(title='Recovered or dead')\
 .configure_title(fontSize=20)
 
 # +
@@ -133,7 +133,7 @@ stacked_sus = alt.Chart(df_tot).mark_area().encode(
 
 (stacked_sus + today_line).interactive()\
 .properties(width=650, height=340)\
-.properties(title='Susceptible or not yet infected (conservative estimate)')\
+.properties(title='Susceptible or not yet infected')\
 .configure_title(fontSize=20)
 # -
 
