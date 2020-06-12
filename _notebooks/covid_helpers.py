@@ -1,4 +1,5 @@
 import os
+import re
 from urllib import request
 
 import numpy as np
@@ -176,9 +177,13 @@ class AgeAdjustedData:
         return ifr_s, population_s, icu_percent_s
 
 
-class HostpitalBeds:
-    csv_path = os.path.join(data_folder, 'hospital_beds.csv')
-    page = 'https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds'
+class ScrapedTableBase:
+    page = 'https://page.com/table'
+    file_name = 'file.csv'
+
+    @classmethod
+    def csv_path(cls):
+        return os.path.join(data_folder, cls.file_name)
 
     @classmethod
     def scrape(cls):
@@ -196,9 +201,19 @@ class HostpitalBeds:
 
     @classmethod
     def load(cls):
-        if not os.path.exists(cls.csv_path):
+        if not os.path.exists(cls.csv_path()):
             cls.download()
-        return pd.read_csv(cls.csv_path)
+        return pd.read_csv(cls.csv_path())
+
+    @classmethod
+    def download(cls):
+        df = cls.scrape()
+        df.to_csv(cls.csv_path(), index=False)
+
+
+class HostpitalBeds(ScrapedTableBase):
+    file_name = 'hospital_beds.csv'
+    page = 'https://en.wikipedia.org/wiki/List_of_countries_by_hospital_beds'
 
     @classmethod
     def download(cls):
@@ -223,7 +238,49 @@ class HostpitalBeds:
         df_clean = pd.concat([df_clean,
                               df_asia[~df_asia['country'].isin(df_clean['country'])]])
 
-        df_clean.to_csv(cls.csv_path, index=False)
+        df_clean.to_csv(cls.csv_path(), index=False)
+
+
+class EmojiFlags(ScrapedTableBase):
+    file_name = 'emoji_flags.csv'
+    page = 'https://apps.timwhitlock.info/emoji/tables/iso3166'
+
+    emoji_col = 'emoji_code'
+
+    @classmethod
+    def download(cls):
+        df = cls.scrape()
+        df_filt = df.rename(columns={'Name': COL_REGION,
+                                     'Unicode': cls.emoji_col}
+                            ).drop(columns=['Emoji'])
+
+        # rename countries
+        df_filt[COL_REGION] = df_filt[COL_REGION].map({
+            'United States': 'US',
+            'Taiwan': 'Taiwan*',
+            'Macedonia': 'North Macedonia',
+            'Cape Verde': 'Cabo Verde',
+            'Saint Vincent and The Grenadines': 'Saint Vincent and the Grenadines',
+            'Palestinian Territory': 'West Bank and Gaza',
+            'Côte D\'Ivoire': 'Cote d\'Ivoire',
+            'Syrian Arab Republic': 'Syria',
+            'Myanmar': 'Burma',
+            'Viet Nam': 'Vietnam',
+            'Brunei Darussalam': 'Brunei',
+            'Lao People\'s Democratic Republic': 'Laos',
+             'Czech Republic': 'Czechia',
+        }).fillna(df_filt[COL_REGION])
+
+        # congo
+        df_filt.loc[df_filt['ISO'] == 'CD', COL_REGION] = 'Congo (Kinshasa)'
+        df_filt.loc[df_filt['ISO'] == 'CG', COL_REGION] = 'Congo (Brazzaville)'
+
+        # convert emoji hex codes to decimal
+        df_filt[cls.emoji_col] = df_filt[cls.emoji_col].apply(
+            lambda s: ''.join(f'&#{int(hex, 16)};'
+                              for hex in re.findall(r'U\+(\S+)', s)))
+
+        df_filt.to_csv(cls.csv_path(), index=False)
 
 
 class CovidData:
@@ -278,7 +335,7 @@ class CovidData:
         df['last_case_date'] = (self.dft_cases.groupby(COL_REGION).sum().diff(axis=1)
                                 .apply(last_date, axis=1))
         df['last_death_date'] = (self.dft_deaths.groupby(COL_REGION).sum().diff(axis=1)
-                                .apply(last_date, axis=1))
+                                 .apply(last_date, axis=1))
         return df
 
     def overview_table(self):
@@ -314,6 +371,9 @@ class CovidData:
               .set_index(COL_REGION, drop=True)
               .sort_values('Cases.new', ascending=False))
         df['Fatality Rate'] /= 100
+
+        df['emoji_flag'] = EmojiFlags.load().set_index(COL_REGION)[EmojiFlags.emoji_col]
+        df['emoji_flag'] = df['emoji_flag'].fillna('')
 
         df = self.add_last_dates(df)
 

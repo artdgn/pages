@@ -63,9 +63,10 @@ df_data['needICU.per100k_past'] = df_past['needICU.per100k']
 
 # +
 #hide
-def large_index(df):
+def index_format(df):
     df = cur_data.rename_long_names(df)
-    df.index = df.index.to_series().apply(lambda s: f'<font size=3><b>{s}</b></font>')
+    df.index = df.apply(
+        lambda s: f"""<font size=3><b>{s['emoji_flag']} {s.name}</b></font>""", axis=1)
     return df
 
 def style_news_infections(df):
@@ -78,7 +79,7 @@ def style_news_infections(df):
       }
     
     rate_norm = max(df['infection_rate'].max(), df['infection_rate_past'].max())
-    return (large_index(df)[cols.keys()].rename(columns=cols).style
+    return (index_format(df)[cols.keys()].rename(columns=cols).style
         .bar(subset=[cols['needICU.per100k']], color='#b21e3e', vmin=0, vmax=10)
         .bar(subset=cols['Cases.new.est'], color='#b57b17')
         .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)
@@ -101,7 +102,7 @@ def style_news_icu(df):
         'affected_ratio.est': 'Estimated <br><i>total</i><br>affected<br>population<br>percentage',
       }
     
-    return (large_index(df)[cols.keys()].rename(columns=cols).style
+    return (index_format(df)[cols.keys()].rename(columns=cols).style
         .bar(subset=cols['needICU.per100k'], color='#b21e3e', vmin=0, vmax=10)
         .bar(subset=cols['needICU.per100k_past'], color='#c67f8e', vmin=0, vmax=10)
         .bar(subset=cols['Cases.new.est'], color='#b57b17')
@@ -121,7 +122,7 @@ def style_basic(df):
         'last_case_date': 'Date<br>of last<br>reported case',
         'last_death_date': 'Date<br>of last<br>reported death',
       }  
-    return (large_index(df)[cols.keys()].rename(columns=cols).style
+    return (index_format(df)[cols.keys()].rename(columns=cols).style
         .format('<b>{:,.0f}</b>', subset=[cols['Cases.total.est'], cols['Deaths.total']]))
 
 
@@ -130,7 +131,7 @@ def style_basic(df):
 # # Transmission rate:
 
 # <a id='-bad-news-new-waves'></a>
-# ## &#10060; <font color=red>Bad</font> news: new waves
+# ## &#11093; <font color=red>Bad</font> news: new waves
 # > Large increase in transmission rate vs. 10 days ago, that might mean a relapse, new wave, worsening outbreak. 
 #
 # - Countries are sorted by size of change in tranmission rate.
@@ -209,7 +210,7 @@ def infected_plots(countries, title, days_back=60):
 infected_plots(new_waves, "Countries with new waves (vs. 10 days ago)")
 
 # <a id='-good-news-slowing-waves'></a>
-# ## &#128077; <font color=green>Good</font> news: slowing waves
+# ## &#128994; <font color=green>Good</font> news: slowing waves
 # > Large decrease in transmission rate vs. 10 days ago, that might mean a slowing down / effective control measures.
 #
 # - Countries are sorted by size of change in tranmission rate.
@@ -232,7 +233,7 @@ infected_plots(slowing_outbreaks, "Countries with slowing waves (vs. 10 days ago
 # # ICU need
 
 # <a id='-bad-news-higher-icu-need'></a>
-# ## &#10060; <font color=red>Bad</font> news: higher ICU need
+# ## &#11093; <font color=red>Bad</font> news: higher ICU need
 # > Large increases in need for ICU beds per 100k population vs. 10 days ago.
 #
 # - Only countries for which the ICU need increased by more than 0.5 (per 100k).
@@ -248,7 +249,7 @@ style_news_icu(df_data.loc[icu_increase])
 infected_plots(icu_increase, "Countries with Higher ICU need (vs. 10 days ago)")
 
 # <a id='-good-news-lower-icu-need'></a>
-# ## &#128077; <font color=green>Good</font> news: lower ICU need
+# ## &#128994; <font color=green>Good</font> news: lower ICU need
 # > Large decreases in need for ICU beds per 100k population vs. 10 days ago.
 #
 # - Only countries for which the ICU need decreased by more than 0.5 (per 100k).
@@ -265,7 +266,7 @@ infected_plots(icu_decrease, "Countries with Lower ICU need (vs. 10 days ago)")
 # # Cases and deaths
 
 # <a id='-bad-news-new-first-significant-outbreaks'></a>
-# ## &#10060; <font color=red>Bad</font> news: new first significant outbreaks
+# ## &#11093; <font color=red>Bad</font> news: new first significant outbreaks
 # > Countries that have started their first significant outbreak (crossed 1000 total reported cases or 20 deaths) vs. 10 days ago.
 
 #hide_input
@@ -278,7 +279,7 @@ style_news_infections(df_data.loc[new_entries])
 infected_plots(new_entries, "Countries with first large outbreak (vs. 10 days ago)")
 
 # <a id='-good-news-no-new-cases-or-deaths'></a>
-# ## &#128077; <font color=green>Good</font> news: no new cases or deaths
+# ## &#128994; <font color=green>Good</font> news: no new cases or deaths
 # > New countries with no new cases or deaths vs. 10 days ago.
 #
 # - Only considering countries that had at least 1000 estimated total cases and at least 10 total deaths and had and active outbreak previously.
