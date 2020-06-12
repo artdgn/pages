@@ -14,8 +14,8 @@
 #     name: python3
 # ---
 
-# # News from data (bad & good)
-# > Signigicant changes vs. 10 days ago in transmission rates, ICU demand, and case / deaths data.
+# # News from data (good & bad)
+# > Signigicant changes vs. 10 days ago in transmission rates, ICU demand, and cases & deaths data.
 #
 # - permalink: /covid-news/
 # - toc: true
@@ -321,7 +321,7 @@ infected_plots(no_deaths, "Countries with only new cases (vs. 10 days ago)")
 # > Countries that had no new cases or deaths 10 days ago or now.
 #
 # - Only considering countries that had at least 1000 estimated total cases and at least 10 total deaths.
-# - Caveat: these countries may have stopped reporting data like [Tanzania](https://en.wikipedia.org/wiki/COVID-19_pandemic_in_Tanzania).
+# - Caveat:  these countries may have stopped reporting data like [Tanzania](https://en.wikipedia.org/wiki/COVID-19_pandemic_in_Tanzania).
 
 #hide_input
 not_active = df_cur.loc[no_cases_filt & significant_past & ~active_in_past].index
