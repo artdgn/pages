@@ -170,6 +170,9 @@ alt.data_transformers.disable_max_rows()
 df_alt_all = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
 
 def infected_plots(countries, title, days_back=60):
+    if not len(countries):
+        return
+    
     df_alt = df_alt_all[df_alt_all['day'].between(-days_back, 0) & 
                         (df_alt_all['country'].isin(countries))]
 
