@@ -81,7 +81,7 @@ def style_news_infections(df):
     rate_norm = max(df['infection_rate'].max(), df['infection_rate_past'].max())
     return (index_format(df)[cols.keys()].rename(columns=cols).style
         .bar(subset=[cols['needICU.per100k']], color='#b21e3e', vmin=0, vmax=10)
-        .bar(subset=cols['Cases.new.est'], color='#b57b17')
+        .bar(subset=cols['Cases.new.est'], color='#b57b17', vmin=0)
         .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)
         .apply(stylers.add_bar, color='#f49d5a',
                s_v=df['infection_rate']/rate_norm, subset=cols['infection_rate'])
@@ -95,7 +95,7 @@ def style_news_infections(df):
         
 def style_news_icu(df):
     cols = {
-        'Cases.new.est': 'Estimated<br><i>recent</i>cases<br> in last 5 days',
+        'Cases.new.est': 'Estimated<br><i>recent</i> cases<br> in last 5 days',
         'needICU.per100k': '<i>Current:</i><br>Estimated<br>ICU need<br>per 100k<br>population',
         'needICU.per100k_past': f'<i>{day_diff} days ago:</i><br>Estimated<br>ICU need<br>per 100k<br>population',
         'infection_rate': 'Estimated<br>daily<br>transmission<br>rate',
@@ -105,7 +105,7 @@ def style_news_icu(df):
     return (index_format(df)[cols.keys()].rename(columns=cols).style
         .bar(subset=cols['needICU.per100k'], color='#b21e3e', vmin=0, vmax=10)
         .bar(subset=cols['needICU.per100k_past'], color='#c67f8e', vmin=0, vmax=10)
-        .bar(subset=cols['Cases.new.est'], color='#b57b17')
+        .bar(subset=cols['Cases.new.est'], color='#b57b17', vmin=0)
         .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)
         .apply(stylers.add_bar, color='#f49d5a',
                s_v=df['infection_rate']/df['infection_rate'].max(), 
