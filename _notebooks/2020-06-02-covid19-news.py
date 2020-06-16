@@ -143,9 +143,9 @@ rate_cur_opt[rate_cur_opt < 0] = 0
 
 rate_diff = rate_cur_opt - rate_past_opt
 pct_rate_diff = rate_diff / df_past['growth_rate_std']
-higher_trans = ((df_cur['infection_rate'] > 0.02) &
+higher_trans = (
         (df_cur['Cases.new.est'] > 100) &
-        (rate_diff > 0.01) &
+        (rate_diff > 0.02) &
         (pct_rate_diff > 3))
 new_waves = rate_diff[higher_trans].sort_values(ascending=False).index
 # -
@@ -157,7 +157,7 @@ Markdown(f"## &#11093; Bad news: new waves ({emoji_flags(new_waves)})")
 #
 # - Countries are sorted by size of change in transmission rate.
 # - Includes only countries that were previously active (more than 100 estimated new cases).
-# - "Large increase" = at least +1% change.
+# - "Large increase" = at least +2% change and at least +3 standard deviations (vs. previous rate std).
 
 #hide_input
 style_news_infections(df_data.loc[new_waves])
@@ -220,20 +220,20 @@ def infected_plots(countries, title, days_back=60):
 infected_plots(new_waves, "Countries with new waves (vs. 10 days ago)")
 
 #hide
-lower_trans = ((df_cur['infection_rate'] > 0.02) &
+lower_trans = (
         (df_cur['Cases.new.est'] > 100) &
-        (rate_diff < -0.01) &
+        (rate_diff < -0.02) &
         (pct_rate_diff < -3))
 slowing_outbreaks = rate_diff[lower_trans].sort_values().index
 
 #hide_input
 Markdown(f"## &#128994; Good news: slowing waves ({emoji_flags(slowing_outbreaks)})")
 
-# > Large decrease in transmission rate vs. 10 days ago, that might mean a slowing down / effective control measures.
+# ## > Large decrease in transmission rate vs. 10 days ago, that might mean a slowing down / effective control measures.
 #
 # - Countries are sorted by size of change in transmission rate.
 # - Includes only countries that were previously active (more than 100 estimated new cases).
-# - "Large decrease" = at least -1% change.
+# - "Large decrease" = at least -2% change and at least -3 standard deviations (vs. previous rate std).
 
 #hide_input
 style_news_infections(df_data.loc[slowing_outbreaks])
