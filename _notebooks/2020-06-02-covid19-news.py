@@ -151,7 +151,7 @@ new_waves = rate_diff[higher_trans].sort_values(ascending=False).index
 # -
 
 #hide_input
-Markdown(f"## &#11093; Bad news: new waves ({emoji_flags(new_waves)})")
+Markdown(f"## &#11093; Bad news: new waves {emoji_flags(new_waves)}")
 
 # > Large increase in transmission rate vs. 10 days ago, that might mean a relapse, new wave, worsening outbreak.
 #
@@ -227,9 +227,9 @@ lower_trans = (
 slowing_outbreaks = rate_diff[lower_trans].sort_values().index
 
 #hide_input
-Markdown(f"## &#128994; Good news: slowing waves ({emoji_flags(slowing_outbreaks)})")
+Markdown(f"## &#128994; Good news: slowing waves {emoji_flags(slowing_outbreaks)}")
 
-# ## > Large decrease in transmission rate vs. 10 days ago, that might mean a slowing down / effective control measures.
+# > Large decrease in transmission rate vs. 10 days ago, that might mean a slowing down / effective control measures.
 #
 # - Countries are sorted by size of change in transmission rate.
 # - Includes only countries that were previously active (more than 100 estimated new cases).
@@ -250,7 +250,7 @@ icu_diff = df_cur['needICU.per100k'] - df_past['needICU.per100k']
 icu_increase = icu_diff[icu_diff > 0.5].sort_values(ascending=False).index
 
 #hide_input
-Markdown(f"## &#11093; Bad news: higher ICU need ({emoji_flags(icu_increase)})")
+Markdown(f"## &#11093; Bad news: higher ICU need {emoji_flags(icu_increase)}")
 
 # > Large increases in need for ICU beds per 100k population vs. 10 days ago.
 #
@@ -268,7 +268,7 @@ infected_plots(icu_increase, "Countries with Higher ICU need (vs. 10 days ago)")
 icu_decrease = icu_diff[icu_diff < -0.5].sort_values().index
 
 #hide_input
-Markdown(f"## &#128994; Good news: lower ICU need ({emoji_flags(icu_decrease)})")
+Markdown(f"## &#128994; Good news: lower ICU need {emoji_flags(icu_decrease)}")
 
 
 # > Large decreases in need for ICU beds per 100k population vs. 10 days ago.
@@ -289,7 +289,7 @@ infected_plots(icu_decrease, "Countries with Lower ICU need (vs. 10 days ago)")
 new_entries = df_cur.index[~df_cur.index.isin(df_past.index)]
 
 #hide_input
-Markdown(f"## &#11093; Bad news: new first significant outbreaks ({emoji_flags(new_entries)})")
+Markdown(f"## &#11093; Bad news: new first significant outbreaks {emoji_flags(new_entries)}")
 
 # > Countries that have started their first significant outbreak (crossed 1000 total reported cases or 20 deaths) vs. 10 days ago.
 
@@ -310,7 +310,7 @@ no_cases_and_deaths = df_cur.loc[no_cases_filt & no_deaths_filt &
                                  significant_past & active_in_past].index
 
 #hide_input
-Markdown(f"## &#128994; Good news: no new cases or deaths ({emoji_flags(no_cases_and_deaths)})")
+Markdown(f"## &#128994; Good news: no new cases or deaths {emoji_flags(no_cases_and_deaths)}")
 
 # > New countries with no new cases or deaths vs. 10 days ago.
 #
@@ -329,7 +329,7 @@ no_deaths = df_cur.loc[no_deaths_filt & (~no_cases_filt) &
                        significant_past & active_in_past].index
 
 #hide_input
-Markdown(f"## Mixed news: no new deaths, only new cases ({emoji_flags(no_deaths)})")
+Markdown(f"## Mixed news: no new deaths, only new cases {emoji_flags(no_deaths)}")
 
 # > New countries with no new deaths (only new cases) vs. 10 days ago.
 #
@@ -347,7 +347,7 @@ infected_plots(no_deaths, "Countries with only new cases (vs. 10 days ago)")
 not_active = df_cur.loc[no_cases_filt & significant_past & ~active_in_past].index
 
 #hide_input
-Markdown(f"## No news: continously inactive countries ({emoji_flags(not_active)})")
+Markdown(f"## No news: continously inactive countries {emoji_flags(not_active)}")
 
 # > Countries that had no new cases or deaths 10 days ago or now.
 #
