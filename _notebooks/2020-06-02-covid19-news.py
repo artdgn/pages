@@ -15,7 +15,7 @@
 # ---
 
 # # World News from data (good & bad)
-# > Signigicant changes vs. 10 days ago in transmission rates, ICU demand, and cases & deaths data.
+# > Significant changes vs. 10 days ago in transmission rates, ICU demand, and cases & deaths data.
 #
 # - permalink: /covid-news/
 # - toc: true
