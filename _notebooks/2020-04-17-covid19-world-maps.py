@@ -57,15 +57,15 @@ fig.update_layout(
         dict(
             buttons=[
                 geo_helper.button_dict(
-                    df_geo['infection_rate'], 'Transmission rate<br>percent (blue-red)',
+                    df_geo['transmission_rate'], 'Transmission rate<br>percent (blue-red)',
                     colorscale='Bluered', scale_max=10, percent=True,
                     subtitle='Transmission rate: over 5% (red) spreading, under 5% (blue) recovering',
-                    err_series=df_geo['growth_rate_std']),
+                    err_series=df_geo['transmission_rate_std']),
                 geo_helper.button_dict(
-                    df_geo['infection_rate'], 'Transmission rate<br>percent',
+                    df_geo['transmission_rate'], 'Transmission rate<br>percent',
                     colorscale='YlOrRd', scale_max=33, percent=True,
                     subtitle='Transmission rate (related to R0)',
-                    err_series=df_geo['growth_rate_std']),
+                    err_series=df_geo['transmission_rate_std']),
                 geo_helper.button_dict(
                     df_geo['Cases.new.per100k.est'], 'Recent cases<br>estimated per 100k',
                     colorscale='YlOrRd',

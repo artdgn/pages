@@ -65,10 +65,10 @@ df_pretty['needICU.per100k.+14d'] = stylers.with_errs_float(
     df_pretty, 'needICU.per100k.+14d', 'needICU.per100k.+14d.err')
 df_pretty['needICU.per100k.+30d'] = stylers.with_errs_float(
     df_pretty, 'needICU.per100k.+30d', 'needICU.per100k.+30d.err')
-df_pretty['infection_rate'] = stylers.with_errs_ratio(df_pretty, 'infection_rate', 'growth_rate_std')
+df_pretty['transmission_rate'] = stylers.with_errs_ratio(df_pretty, 'transmission_rate', 'transmission_rate_std')
 
 cols = {'needICU.per100k': 'Estimated<br>current<br>ICU need<br>per 100k<br>population',
-        'infection_rate': 'Estimated<br>daily<br>transmission<br>rate',
+        'transmission_rate': 'Estimated<br>daily<br>transmission<br>rate',
        'needICU.per100k.+14d': 'Projected<br>ICU need<br>per 100k<br>In 14 days', 
        'needICU.per100k.+30d': 'Projected<br>ICU need<br>per 100k<br>In 30 days',               
        'icu_capacity_per100k': 'Pre-COVID<br>ICU<br>capacity<br> per 100k',
@@ -89,7 +89,7 @@ def style_icu_table(df_pretty, filt):
         .apply(stylers.add_bar, color='#ef8ba0',
                s_v=df_data[filt]['needICU.per100k.+30d']/10, subset=cols['needICU.per100k.+30d'])\
         .apply(stylers.add_bar, color='#f49d5a',
-               s_v=df_data[filt]['infection_rate']/0.33, subset=cols['infection_rate'])\
+               s_v=df_data[filt]['transmission_rate']/0.33, subset=cols['transmission_rate'])\
         .bar(subset=[cols['icu_spare_capacity_per100k']], color='#3ab1d8', vmin=0, vmax=10)\
         .applymap(lambda _: 'color: blue', subset=cols['icu_spare_capacity_per100k'])\
         .format('<b>{:.1f}</b>', subset=cols['icu_capacity_per100k'], na_rep="-")\
@@ -102,12 +102,12 @@ def style_icu_table(df_pretty, filt):
 # ### Growing countries (transmission rate above 5%)
 
 #hide_input
-style_icu_table(df_pretty, df_data['infection_rate'] > 0.05)
+style_icu_table(df_pretty, df_data['transmission_rate'] > 0.05)
 
 # ### Recovering countries (transmission rate below 5%)
 
 #hide_input
-style_icu_table(df_pretty, df_data['infection_rate'] <= 0.05)
+style_icu_table(df_pretty, df_data['transmission_rate'] <= 0.05)
 
 # ## Projected Affected Population percentages
 # > Top 20 countries with most estimated recent cases.
@@ -130,11 +130,11 @@ df_pretty['affected_ratio.est.+14d'] = stylers.with_errs_ratio(
     df_pretty, 'affected_ratio.est.+14d', 'affected_ratio.est.+14d.err')
 df_pretty['affected_ratio.est.+30d'] = stylers.with_errs_ratio(
     df_pretty, 'affected_ratio.est.+30d', 'affected_ratio.est.+30d.err')
-df_pretty['infection_rate'] = stylers.with_errs_ratio(df_pretty, 'infection_rate', 'growth_rate_std')
+df_pretty['transmission_rate'] = stylers.with_errs_ratio(df_pretty, 'transmission_rate', 'transmission_rate_std')
 
 cols = {'Cases.new.est': 'Estimated <br> <i>new</i> cases <br> in last 5 days',        
        'affected_ratio.est': 'Estimated <br><i>total</i><br>affected<br>population<br>percentage',
-       'infection_rate': 'Estimated<br>daily<br>transmission<br>rate',
+       'transmission_rate': 'Estimated<br>daily<br>transmission<br>rate',
        'affected_ratio.est.+14d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 14 days',
        'affected_ratio.est.+30d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 30 days',       
        'lagged_fatality_rate': 'Lagged<br>fatality <br> percentage',
@@ -146,7 +146,7 @@ index_format(df_pretty)[cols.keys()].rename(cols, axis=1).style\
     .apply(stylers.add_bar, color='#a1afa3',
            s_v=df_data['affected_ratio.est.+30d'], subset=cols['affected_ratio.est.+30d'])\
     .apply(stylers.add_bar, color='#f49d5a',
-           s_v=df_data['infection_rate']/0.33, subset=cols['infection_rate'])\
+           s_v=df_data['transmission_rate']/0.33, subset=cols['transmission_rate'])\
     .bar(subset=cols['Cases.new.est'], color='#b57b17')\
     .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)\
     .bar(subset=cols['lagged_fatality_rate'], color='#420412', vmin=0, vmax=0.2)\
@@ -214,11 +214,11 @@ df[pretty_cols['deaths']] =(df.apply(lambda r: f"\
                          (+<b>{r['Deaths.new.per100k']:,.1f}</b></i>) \
                          ", axis=1))
 
-pretty_cols['rates'] = 'Rates:<br>-Cases<br>-Transmission<br>-Lagged<br>fatality<br>(<i>Reported</i>)'
+pretty_cols['rates'] = 'Rates:<br>-Transmission<br>-Cases<br>-Lagged<br>fatality<br>(<i>Reported</i>)'
 df[pretty_cols['rates']] =(df.apply(lambda r: f" \
-                         {r['growth_rate']:,.1%} \
-                         ± <font size=1><i>{r['growth_rate_std']:.0%}</i></font><br>\
-                         <b>{r['infection_rate']:,.1%}</b><br>\
+                         <b>{r['transmission_rate']:,.1%}</b> \
+                         ± <font size=1><i>{r['transmission_rate_std']:.0%}</i></font><br>\
+                         {r['growth_rate']:,.1%}<br>\
                          <b><font color='red'>{r['lagged_fatality_rate']:,.1%}</font></b>\
                          <font size=1>(<i>{r['Fatality Rate']:,.1%}</i>)</font>\
                          ", axis=1))
@@ -238,7 +238,7 @@ index_format(df_data)[pretty_cols.values()].style\
            s_v=df_data['Deaths.new.per100k']/df_data['Deaths.new.per100k'].max(), 
            subset=pretty_cols['deaths'])\
     .apply(stylers.add_bar, color='#f49d5a',
-           s_v=df_data['infection_rate']/0.3,
+           s_v=df_data['transmission_rate']/0.3,
            subset=pretty_cols['rates'])
 # -
 
