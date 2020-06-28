@@ -143,7 +143,7 @@ style_news_infections(df_data.loc[new_waves])
 df_alt_all = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
 def infected_plots(countries, title):
     return covid_helpers.altair_multiple_countries_infected(
-        df_alt_all, countries=countries, title=title, days_back=90, marker_day=day_diff)
+        df_alt_all, countries=countries, title=title, marker_day=day_diff)
 
 
 # > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
