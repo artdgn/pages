@@ -315,11 +315,66 @@ class CovidData:
     def __init__(self, days_offset=0):
         assert days_offset <= 0, 'day_offest can only be 0 or negative (in the past)'
         self.dt_cols = self.dt_cols_all[:(len(self.dt_cols_all) + days_offset)]
-        self.dfc_cases = self.dft_cases.groupby(COL_REGION)[self.dt_cols[-1]].sum()
+        self.dft_cases_backfilled = self._cases_with_backfilled_unreported_days()
+        self.dfc_cases = self.dft_cases_backfilled[self.dt_cols[-1]]
         self.dfc_deaths = self.dft_deaths.groupby(COL_REGION)[self.dt_cols[-1]].sum()
 
+    def _cases_with_backfilled_unreported_days(self):
+
+        def backfill_missing(series, backfill_prev_threshold=50):
+            """
+            Fills 0 diff days between days with large measurements by spreading the
+            future's "catch up" day's cases on the zero days.
+
+            :param series: pandas series of daily cases
+            :param backfill_prev_threshold: number of cases per day after which a 0 day
+                is considered a missing measurement rather than a true zero
+            :return: backfilled series of daily cases
+            """
+            out = [series[0]]
+            missing = 0
+            for i in range(1, len(series)):
+                cur, prev = series[i], series[i - 1]
+                if cur == 0:
+                    if missing:
+                        missing += 1  # increase missing days
+                    else:
+                        if prev >= backfill_prev_threshold:
+                            # a lot of cases on previous day
+                            missing = 1  # set first missing day
+                        else:
+                            # normal: too few cases previously, a zero is plausible
+                            out.append(cur)
+                elif cur > 0:
+                    if missing:
+                        # catching up by backfilling from current value
+                        out.extend([cur / (missing + 1)] * (missing + 1))
+                        missing = 0  # reset missing condition
+                    else:
+                        # normal: cases accumulating
+                        out.append(cur)
+                else:  # cur < 0
+                    # some kind of data adjustment (e.g. France)
+                    if missing:  # reset missing
+                        out.extend([0] * missing)
+                        missing = 0
+                    out.append(cur)
+
+            if missing:  # finished on missing (no "catch up" day until now)
+                out.extend([0] * missing)
+
+            return pd.Series(out, index=series.index)
+
+        cases = self.dft_cases.groupby(self.COL_REGION).sum()[self.dt_cols_all]
+        diffs = cases.diff(axis=1)
+        diffs.iloc[:, 0] = cases.iloc[:, 0]  # replace resulting nans in first date's data
+
+        fixed = diffs.apply(backfill_missing, axis=1)
+        imputed_cases = fixed.cumsum(axis=1)
+        return imputed_cases
+
     def lagged_cases(self, lag=PREV_LAG):
-        return self.dft_cases.groupby(COL_REGION)[self.dt_cols[-lag]].sum()
+        return self.dft_cases_backfilled[self.dt_cols[-lag]]
 
     def lagged_deaths(self, lag=PREV_LAG):
         return self.dft_deaths.groupby(COL_REGION)[self.dt_cols[-lag]].sum()
@@ -441,9 +496,9 @@ class CovidData:
     def smoothed_growth_rates(self, n_days):
         recent_dates = self.dt_cols[-n_days:]
 
-        cases = (self.dft_cases.groupby(COL_REGION).sum()[recent_dates] + 1)  # with pseudo counts
+        cases = (self.dft_cases_backfilled[recent_dates] + 1)  # with pseudo counts
 
-        diffs = self.dft_cases.groupby(COL_REGION).sum().diff(axis=1)[recent_dates]
+        diffs = self.dft_cases_backfilled.diff(axis=1)[recent_dates]
         diffs[diffs < 0] = 0  # total cases cannot go down
 
         cases, diffs = cases.T, diffs.T  # broadcasting works correctly this way
@@ -494,7 +549,7 @@ class CovidData:
 
     def _calculate_recovered_and_active_until_now(self, df):
         # estimated daily cases ratio of population
-        lagged_cases_ratios = (self.dft_cases.groupby(COL_REGION).sum()[self.dt_cols].T *
+        lagged_cases_ratios = (self.dft_cases_backfilled[self.dt_cols].T *
                                df['testing_bias'].T / df['population'].T).T
         # protect from testing bias over-inflation
         lagged_cases_ratios[lagged_cases_ratios > 1] = 1
