@@ -76,15 +76,8 @@ df_data['testing_bias.change'] = (df_data['testing_bias'] / df_past['testing_bia
 
 # +
 #hide
-def index_format(df):
-    df = cur_data.rename_long_names(df)
-    df.index = df.apply(
-        lambda s: f"""<font size=3><b>{s['emoji_flag']} {s.name}</b></font>""", axis=1)
-    return df
-
 def emoji_flags(inds):
     return ' '.join(df_cur.loc[inds]['emoji_flag'])
-
 
 # -
 
@@ -101,7 +94,8 @@ def style_news_infections(df):
       }
     
     rate_norm = max(df['transmission_rate'].max(), df['transmission_rate_past'].max())
-    return (index_format(df)[cols.keys()].rename(columns=cols).style
+    df_show = stylers.country_index_emoji_link(df)[cols.keys()].rename(columns=cols)
+    return (df_show.style
         .bar(subset=[cols['needICU.per100k']], color='#b21e3e', vmin=0, vmax=10)
         .bar(subset=cols['Cases.new.est'], color='#b57b17', vmin=0)
         .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)
@@ -189,8 +183,9 @@ def style_news_icu(df):
         'transmission_rate': 'Estimated<br>daily<br>transmission<br>rate',
         'affected_ratio.est': 'Estimated <br><i>total</i><br>affected<br>population<br>percentage',
       }
-    
-    return (index_format(df)[cols.keys()].rename(columns=cols).style
+
+    df_show = stylers.country_index_emoji_link(df)[cols.keys()].rename(columns=cols)
+    return (df_show.style
         .bar(subset=cols['needICU.per100k'], color='#b21e3e', vmin=0, vmax=10)
         .bar(subset=cols['needICU.per100k_past'], color='#c67f8e', vmin=0, vmax=10)
         .bar(subset=cols['Cases.new.est'], color='#b57b17', vmin=0)
@@ -268,8 +263,9 @@ def style_no_news(df):
         'Deaths.total': 'Total<br>reported<br>deaths',
         'last_case_date': 'Date<br>of last<br>reported case',
         'last_death_date': 'Date<br>of last<br>reported death',
-      }  
-    return (index_format(df)[cols.keys()].rename(columns=cols).style
+      }
+    df_show = stylers.country_index_emoji_link(df)[cols.keys()].rename(columns=cols)
+    return (df_show.style
         .format('<b>{:,.0f}</b>', subset=[cols['Cases.total.est'], cols['Deaths.total']]))
 
 
@@ -339,27 +335,27 @@ infected_plots(not_active, "Continuosly inactive countries (now and 10 days ago)
 
 #hide
 def style_death_burden(df):
-    df = index_format(df)
-    cols = {        
+    cols = {
         'Deaths.new.per100k': f'<i>Current</i>:<br>{cur_data.PREV_LAG} day<br>death<br>burden<br>per 100k',
         'Deaths.new.per100k.past': f'<i>{day_diff} days ago</i>:<br>{cur_data.PREV_LAG} day<br>death<br>burden<br>per 100k',
         'Deaths.total.diff': f'New<br>reported deaths<br>since {day_diff}<br>days ago',
         'needICU.per100k': 'Estimated<br>current<br>ICU need<br>per 100k<br>population',
-        'affected_ratio.est': 'Estimated <br><i>total</i><br>affected<br>population<br>percentage',        
-      }  
+        'affected_ratio.est': 'Estimated <br><i>total</i><br>affected<br>population<br>percentage',
+    }
+    df_show = stylers.country_index_emoji_link(df)[cols.keys()].rename(columns=cols)
     death_norm = max(df['Deaths.new.per100k'].max(), df['Deaths.new.per100k.past'].max())
-    return (df[cols.keys()].rename(columns=cols).style
-        .bar(subset=cols['needICU.per100k'], color='#b21e3e', vmin=0, vmax=10)
-        .bar(subset=cols['Deaths.new.per100k'], color='#7b7a7c', vmin=0, vmax=death_norm)
-        .bar(subset=cols['Deaths.new.per100k.past'], color='#918f93', vmin=0, vmax=death_norm)
-        .bar(subset=cols['Deaths.total.diff'], color='#6b595d', vmin=0)
-        .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)
-        .format('<b>{:.0f}</b>', subset=[cols['Deaths.total.diff'],
-                                        ])
-        .format('<b>{:.1f}</b>', subset=cols['needICU.per100k'])
-        .format('<b>{:.2f}</b>', subset=[cols['Deaths.new.per100k'],
-                                        cols['Deaths.new.per100k.past']])
-        .format('<b>{:.1%}</b>', subset=[cols['affected_ratio.est']], na_rep="-"))
+    return (df_show.style
+            .bar(subset=cols['needICU.per100k'], color='#b21e3e', vmin=0, vmax=10)
+            .bar(subset=cols['Deaths.new.per100k'], color='#7b7a7c', vmin=0, vmax=death_norm)
+            .bar(subset=cols['Deaths.new.per100k.past'], color='#918f93', vmin=0, vmax=death_norm)
+            .bar(subset=cols['Deaths.total.diff'], color='#6b595d', vmin=0)
+            .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)
+            .format('<b>{:.0f}</b>', subset=[cols['Deaths.total.diff'],
+                                             ])
+            .format('<b>{:.1f}</b>', subset=cols['needICU.per100k'])
+            .format('<b>{:.2f}</b>', subset=[cols['Deaths.new.per100k'],
+                                             cols['Deaths.new.per100k.past']])
+            .format('<b>{:.1%}</b>', subset=[cols['affected_ratio.est']], na_rep="-"))
 
 
 #hide

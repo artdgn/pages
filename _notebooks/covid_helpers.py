@@ -333,18 +333,14 @@ class CovidData:
             """
             out = [series[0]]
             missing = 0
-            for i in range(1, len(series)):
-                cur, prev = series[i], series[i - 1]
+            for cur in series[1:]:
                 if cur == 0:
-                    if missing:
+                    if out[-1] >= backfill_prev_threshold:
+                        # a lot of cases on previous appended day
                         missing += 1  # increase missing days
                     else:
-                        if prev >= backfill_prev_threshold:
-                            # a lot of cases on previous day
-                            missing = 1  # set first missing day
-                        else:
-                            # normal: too few cases previously, a zero is plausible
-                            out.append(cur)
+                        # normal: too few cases previously, a zero is plausible
+                        out.append(cur)
                 elif cur > 0:
                     if missing:
                         # catching up by backfilling from current value
@@ -819,7 +815,22 @@ def altair_multiple_countries_infected(df_alt_all,
             .configure_axis(labelFontSize=15, titleFontSize=18, grid=True)
             .properties(title=title, width=550, height=340).interactive(bind_x=False))
 
+
 class PandasStyling:
+
+    @staticmethod
+    def country_index_emoji_link(df, font_size=3):
+        """Assumes index is country names and "emoji_flag" field exists
+        and adds a news link and the country's emoji"""
+        df = CovidData.rename_long_names(df)
+        df.index = df.apply(
+            lambda s: f"""
+            <font size={font_size}>{s['emoji_flag']} <a href=
+            "https://duckduckgo.com/?q=
+            covid19+pandemic+in+{'+'.join(s.name.lower().split())}+country" 
+            target="_blank">{s.name}</a></font>""", axis=1)
+        return df
+
     @staticmethod
     def add_bar(s_t, s_v, color):
         s_v = s_v.copy()

@@ -28,8 +28,10 @@
 # +
 #hide
 import pandas as pd
-
-import covid_helpers
+try:  # using in REPL
+    from . import covid_helpers
+except ImportError:
+    import covid_helpers
 
 covid_data = covid_helpers.CovidData()
 stylers = covid_helpers.PandasStyling
@@ -59,42 +61,38 @@ Markdown(f"***Based on data up to: {covid_data.cur_date}***")
 
 # +
 #hide
-df_data = df.sort_values('needICU.per100k', ascending=False)
-df_pretty = df_data.copy()
-df_pretty['needICU.per100k.+14d'] = stylers.with_errs_float(
-    df_pretty, 'needICU.per100k.+14d', 'needICU.per100k.+14d.err')
-df_pretty['needICU.per100k.+30d'] = stylers.with_errs_float(
-    df_pretty, 'needICU.per100k.+30d', 'needICU.per100k.+30d.err')
-df_pretty['transmission_rate'] = stylers.with_errs_ratio(df_pretty, 'transmission_rate', 'transmission_rate_std')
 
-cols = {'needICU.per100k': 'Estimated<br>current<br>ICU need<br>per 100k<br>population',
-        'transmission_rate': 'Estimated<br>daily<br>transmission<br>rate',
-       'needICU.per100k.+14d': 'Projected<br>ICU need<br>per 100k<br>In 14 days', 
-       'needICU.per100k.+30d': 'Projected<br>ICU need<br>per 100k<br>In 30 days',               
-       'icu_capacity_per100k': 'Pre-COVID<br>ICU<br>capacity<br> per 100k',
-       'icu_spare_capacity_per100k': 'Pre-COVID<br>Estimated ICU<br>Spare capacity<br>per 100k',               
-      }
+def style_icu_table(df):
+    df_icu = df.sort_values('needICU.per100k', ascending=False)
 
-def index_format(df):
-    df = covid_data.rename_long_names(df)
-    df.index = df.apply(
-        lambda s: f"{s['emoji_flag']} {s.name}", axis=1)
-    return df
-
-def style_icu_table(df_pretty, filt):
-    return index_format(df_pretty[filt])[cols.keys()].rename(cols, axis=1).style\
-        .bar(subset=cols['needICU.per100k'], color='#b21e3e', vmin=0, vmax=10)\
+    cols = {'needICU.per100k': 'Estimated<br>current<br>ICU need<br>per 100k<br>population',
+            'transmission_rate': 'Estimated<br>daily<br>transmission<br>rate',
+            'needICU.per100k.+14d': 'Projected<br>ICU need<br>per 100k<br>In 14 days',
+            'needICU.per100k.+30d': 'Projected<br>ICU need<br>per 100k<br>In 30 days',
+            'icu_capacity_per100k': 'Pre-COVID<br>ICU<br>capacity<br> per 100k',
+            'icu_spare_capacity_per100k': 'Pre-COVID<br>Estimated ICU<br>Spare capacity<br>per 100k',
+            }
+    df_show = stylers.country_index_emoji_link(df_icu, font_size=2)
+    df_show['needICU.per100k.+14d'] = stylers.with_errs_float(
+        df_show, 'needICU.per100k.+14d', 'needICU.per100k.+14d.err')
+    df_show['needICU.per100k.+30d'] = stylers.with_errs_float(
+        df_show, 'needICU.per100k.+30d', 'needICU.per100k.+30d.err')
+    df_show['transmission_rate'] = stylers.with_errs_ratio(
+        df_show, 'transmission_rate', 'transmission_rate_std')
+    df_show = df_show[cols.keys()].rename(columns=cols)
+    return (df_show.style
+        .bar(subset=cols['needICU.per100k'], color='#b21e3e', vmin=0, vmax=10)
         .apply(stylers.add_bar, color='#f43d64',
-               s_v=df_data[filt]['needICU.per100k.+14d']/10, subset=cols['needICU.per100k.+14d'])\
+               s_v=df_icu['needICU.per100k.+14d']/10, subset=cols['needICU.per100k.+14d'])
         .apply(stylers.add_bar, color='#ef8ba0',
-               s_v=df_data[filt]['needICU.per100k.+30d']/10, subset=cols['needICU.per100k.+30d'])\
+               s_v=df_icu['needICU.per100k.+30d']/10, subset=cols['needICU.per100k.+30d'])
         .apply(stylers.add_bar, color='#f49d5a',
-               s_v=df_data[filt]['transmission_rate']/0.33, subset=cols['transmission_rate'])\
-        .bar(subset=[cols['icu_spare_capacity_per100k']], color='#3ab1d8', vmin=0, vmax=10)\
-        .applymap(lambda _: 'color: blue', subset=cols['icu_spare_capacity_per100k'])\
-        .format('<b>{:.1f}</b>', subset=cols['icu_capacity_per100k'], na_rep="-")\
-        .format('<b>{:.1f}</b>', subset=cols['icu_spare_capacity_per100k'], na_rep="-")\
-        .format('<b>{:.2f}</b>', subset=cols['needICU.per100k'])
+               s_v=df_icu['transmission_rate']/0.33, subset=cols['transmission_rate'])
+        .bar(subset=[cols['icu_spare_capacity_per100k']], color='#3ab1d8', vmin=0, vmax=10)
+        .applymap(lambda _: 'color: blue', subset=cols['icu_spare_capacity_per100k'])
+        .format('<b>{:.1f}</b>', subset=cols['icu_capacity_per100k'], na_rep="-")
+        .format('<b>{:.1f}</b>', subset=cols['icu_spare_capacity_per100k'], na_rep="-")
+        .format('<b>{:.2f}</b>', subset=cols['needICU.per100k']))
 
 
 # -
@@ -102,12 +100,12 @@ def style_icu_table(df_pretty, filt):
 # ### Growing countries (transmission rate above 5%)
 
 #hide_input
-style_icu_table(df_pretty, df_data['transmission_rate'] > 0.05)
+style_icu_table(df[df['transmission_rate'] > 0.05])
 
 # ### Recovering countries (transmission rate below 5%)
 
 #hide_input
-style_icu_table(df_pretty, df_data['transmission_rate'] <= 0.05)
+style_icu_table(df[df['transmission_rate'] <= 0.05])
 
 # ## Projected Affected Population percentages
 # > Top 20 countries with most estimated recent cases.
@@ -124,13 +122,7 @@ style_icu_table(df_pretty, df_data['transmission_rate'] <= 0.05)
 
 # +
 #hide_input
-df_data = df.sort_values('Cases.new.est', ascending=False).head(20)
-df_pretty = df_data.copy()
-df_pretty['affected_ratio.est.+14d'] = stylers.with_errs_ratio(
-    df_pretty, 'affected_ratio.est.+14d', 'affected_ratio.est.+14d.err')
-df_pretty['affected_ratio.est.+30d'] = stylers.with_errs_ratio(
-    df_pretty, 'affected_ratio.est.+30d', 'affected_ratio.est.+30d.err')
-df_pretty['transmission_rate'] = stylers.with_errs_ratio(df_pretty, 'transmission_rate', 'transmission_rate_std')
+df_cases = df.sort_values('Cases.new.est', ascending=False).head(20)
 
 cols = {'Cases.new.est': 'Estimated <br> <i>new</i> cases <br> in last 5 days',        
        'affected_ratio.est': 'Estimated <br><i>total</i><br>affected<br>population<br>percentage',
@@ -139,20 +131,27 @@ cols = {'Cases.new.est': 'Estimated <br> <i>new</i> cases <br> in last 5 days',
        'affected_ratio.est.+30d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 30 days',       
        'lagged_fatality_rate': 'Lagged<br>fatality <br> percentage',
       }
-
-index_format(df_pretty)[cols.keys()].rename(cols, axis=1).style\
+df_show = stylers.country_index_emoji_link(df_cases, font_size=2)
+df_show['affected_ratio.est.+14d'] = stylers.with_errs_ratio(
+    df_show, 'affected_ratio.est.+14d', 'affected_ratio.est.+14d.err')
+df_show['affected_ratio.est.+30d'] = stylers.with_errs_ratio(
+    df_show, 'affected_ratio.est.+30d', 'affected_ratio.est.+30d.err')
+df_show['transmission_rate'] = stylers.with_errs_ratio(
+    df_show, 'transmission_rate', 'transmission_rate_std')
+df_show = df_show[cols.keys()].rename(columns=cols)
+(df_show.style
     .apply(stylers.add_bar, color='#719974',
-           s_v=df_data['affected_ratio.est.+14d'], subset=cols['affected_ratio.est.+14d'])\
+           s_v=df_cases['affected_ratio.est.+14d'], subset=cols['affected_ratio.est.+14d'])
     .apply(stylers.add_bar, color='#a1afa3',
-           s_v=df_data['affected_ratio.est.+30d'], subset=cols['affected_ratio.est.+30d'])\
+           s_v=df_cases['affected_ratio.est.+30d'], subset=cols['affected_ratio.est.+30d'])
     .apply(stylers.add_bar, color='#f49d5a',
-           s_v=df_data['transmission_rate']/0.33, subset=cols['transmission_rate'])\
-    .bar(subset=cols['Cases.new.est'], color='#b57b17')\
-    .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)\
-    .bar(subset=cols['lagged_fatality_rate'], color='#420412', vmin=0, vmax=0.2)\
-    .applymap(lambda _: 'color: red', subset=cols['lagged_fatality_rate'])\
-    .format('<b>{:,.0f}</b>', subset=cols['Cases.new.est'])\
-    .format('<b>{:.1%}</b>', subset=[cols['lagged_fatality_rate'], cols['affected_ratio.est']])
+           s_v=df_cases['transmission_rate']/0.33, subset=cols['transmission_rate'])
+    .bar(subset=cols['Cases.new.est'], color='#b57b17')
+    .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)
+    .bar(subset=cols['lagged_fatality_rate'], color='#420412', vmin=0, vmax=0.2)
+    .applymap(lambda _: 'color: red', subset=cols['lagged_fatality_rate'])
+    .format('<b>{:,.0f}</b>', subset=cols['Cases.new.est'])
+    .format('<b>{:.1%}</b>', subset=[cols['lagged_fatality_rate'], cols['affected_ratio.est']]))
 # -
 
 
@@ -181,41 +180,44 @@ covid_helpers.altair_sir_plot(df_alt_filt, df['Deaths.new.per100k'].idxmax())
 
 # +
 #hide_input
-pretty_cols = {}
+cols = {}
 
-pretty_cols['cases'] = 'Cases<br>-Reported(+recent)<br>-<i>Estimated(+new)</i>'
-df[pretty_cols['cases']] =(df.apply(lambda r: f" \
+df_stats = df.sort_values('needICU.per100k.+14d', ascending=False)
+df_show = stylers.country_index_emoji_link(df_stats, font_size=2)
+
+cols['cases'] = 'Cases<br>-Reported(+recent)<br>-<i>Estimated(+new)</i>'
+df_show[cols['cases']] =(df_show.apply(lambda r: f" \
                          {r['Cases.total']:,.0f}\
                          (+<b>{r['Cases.new']:,.0f}</b>)<br>\
                          <i>{r['Cases.total.est']:,.0f}\
                          (+<b>{r['Cases.new.est']:,.0f}</b></i>)\
                          ", axis=1))
 
-pretty_cols['progress'] = ('Affected<br>percentage<br>\
+cols['progress'] = ('Affected<br>percentage<br>\
                       -Reported<br>-<i>Estimated<br>-Now<br>-In <b>14</b> / 30</i>')
-df[pretty_cols['progress']] =(df.apply(lambda r: f" \
+df_show[cols['progress']] =(df_show.apply(lambda r: f" \
                         {r['affected_ratio']:.2%} <br>\
                         <i>{r['affected_ratio.est']:.1%}<br>\
                         <b>{r['affected_ratio.est.+14d']:.1%}</b> /\
                         {r['affected_ratio.est.+30d']:.0%}</i>", axis=1))
 
-pretty_cols['icu'] = ('Estimated<br>Need for ICU<br>per 100k<br>\
+cols['icu'] = ('Estimated<br>Need for ICU<br>per 100k<br>\
                       -Now <i><br>-In <b>14</b> / 30</i>')
-df[pretty_cols['icu']] =(df.apply(lambda r: f"\
+df_show[cols['icu']] =(df_show.apply(lambda r: f"\
                         {r['needICU.per100k']:.1f}<br>\
                         <i><b>{r['needICU.per100k.+14d']:.1f}</b> /\
                         {r['needICU.per100k.+30d']:.0f}</i>", axis=1))
 
-pretty_cols['deaths'] = 'Reported<br>Deaths<br>-Total(+recent)<br>-<i>Per100k(+recent)</i>'
-df[pretty_cols['deaths']] =(df.apply(lambda r: f"\
+cols['deaths'] = 'Reported<br>Deaths<br>-Total(+recent)<br>-<i>Per100k(+recent)</i>'
+df_show[cols['deaths']] =(df_show.apply(lambda r: f"\
                          {r['Deaths.total']:,.0f}\
                          (+<b>{r['Deaths.new']:,.0f}</b>) <br>\
                          <i>{r['Deaths.total.per100k']:,.1f}\
                          (+<b>{r['Deaths.new.per100k']:,.1f}</b></i>) \
                          ", axis=1))
 
-pretty_cols['rates'] = 'Rates:<br>-Transmission<br>-Cases<br>-Lagged<br>fatality<br>(<i>Reported</i>)'
-df[pretty_cols['rates']] =(df.apply(lambda r: f" \
+cols['rates'] = 'Rates:<br>-Transmission<br>-Cases<br>-Lagged<br>fatality<br>(<i>Reported</i>)'
+df_show[cols['rates']] =(df_show.apply(lambda r: f" \
                          <b>{r['transmission_rate']:,.1%}</b> \
                          ± <font size=1><i>{r['transmission_rate_std']:.0%}</i></font><br>\
                          {r['growth_rate']:,.1%}<br>\
@@ -223,23 +225,22 @@ df[pretty_cols['rates']] =(df.apply(lambda r: f" \
                          <font size=1>(<i>{r['Fatality Rate']:,.1%}</i>)</font>\
                          ", axis=1))
 
-df_data = df.sort_values('needICU.per100k.+14d', ascending=False)
-index_format(df_data)[pretty_cols.values()].style\
-    .apply(stylers.add_bar, color='#b57b17',
-           s_v=df_data['Cases.new.est']/df_data['Cases.new.est'].max(), 
-           subset=pretty_cols['cases'])\
-    .apply(stylers.add_bar, color='#5dad64',
-           s_v=df_data['affected_ratio.est.+14d'], 
-           subset=pretty_cols['progress'])\
-    .apply(stylers.add_bar, color='#f43d64',
-           s_v=df_data['needICU.per100k.+14d']/10, 
-           subset=pretty_cols['icu'])\
-    .apply(stylers.add_bar, color='#918f93',
-           s_v=df_data['Deaths.new.per100k']/df_data['Deaths.new.per100k'].max(), 
-           subset=pretty_cols['deaths'])\
-    .apply(stylers.add_bar, color='#f49d5a',
-           s_v=df_data['transmission_rate']/0.3,
-           subset=pretty_cols['rates'])
+(df_show[cols.values()].rename(columns=cols).style
+ .apply(stylers.add_bar, color='#b57b17',
+        s_v=df_stats['Cases.new.est'] / df_stats['Cases.new.est'].max(),
+        subset=cols['cases'])
+ .apply(stylers.add_bar, color='#5dad64',
+        s_v=df_stats['affected_ratio.est.+14d'],
+        subset=cols['progress'])
+ .apply(stylers.add_bar, color='#f43d64',
+        s_v=df_stats['needICU.per100k.+14d'] / 10,
+        subset=cols['icu'])
+ .apply(stylers.add_bar, color='#918f93',
+        s_v=df_stats['Deaths.new.per100k'] / df_stats['Deaths.new.per100k'].max(),
+        subset=cols['deaths'])
+ .apply(stylers.add_bar, color='#f49d5a',
+        s_v=df_stats['transmission_rate'] / 0.3,
+        subset=cols['rates']))
 # -
 
 # <a id='appendix'></a>
