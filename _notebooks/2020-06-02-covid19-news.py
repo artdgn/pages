@@ -25,6 +25,8 @@
 
 # > Note: For per country details projections, and for methodology see [main notebook](/pages/covid-progress-projections/)
 
+# > Note: Click a country name to open a search results page for that country's COVID-19 news.
+
 # +
 #hide
 import pandas as pd
@@ -74,12 +76,12 @@ df_data['needICU.per100k.miss'] = (df_cur['needICU.per100k'] / df_past['needICU.
 df_data['testing_bias.change'] = (df_data['testing_bias'] / df_past['testing_bias']) - 1
 
 
-# +
+# -
+
 #hide
 def emoji_flags(inds):
     return ' '.join(df_cur.loc[inds]['emoji_flag'])
 
-# -
 
 # # Transmission rate:
 
@@ -201,14 +203,14 @@ def style_news_icu(df):
 
 #hide
 icu_diff = df_cur['needICU.per100k'] - df_past['needICU.per100k']
-icu_increase = icu_diff[icu_diff > 0.5].sort_values(ascending=False).index
+icu_increase = icu_diff[icu_diff > 0.2].sort_values(ascending=False).index
 
 #hide_input
 Markdown(f"## &#11093; Bad news: higher ICU need {emoji_flags(icu_increase)}")
 
 # > Large increases in need for ICU beds per 100k population vs. 10 days ago.
 #
-# - Only countries for which the ICU need increased by more than 0.5 (per 100k).
+# - Only countries for which the ICU need increased by more than 0.2 (per 100k).
 
 #hide_input
 style_news_icu(df_data.loc[icu_increase])
@@ -219,7 +221,7 @@ style_news_icu(df_data.loc[icu_increase])
 infected_plots(icu_increase, "Countries with Higher ICU need (vs. 10 days ago)")
 
 #hide
-icu_decrease = icu_diff[icu_diff < -0.5].sort_values().index
+icu_decrease = icu_diff[icu_diff < -0.1].sort_values().index
 
 #hide_input
 Markdown(f"## &#128994; Good news: lower ICU need {emoji_flags(icu_decrease)}")
@@ -227,7 +229,7 @@ Markdown(f"## &#128994; Good news: lower ICU need {emoji_flags(icu_decrease)}")
 
 # > Large decreases in need for ICU beds per 100k population vs. 10 days ago.
 #
-# - Only countries for which the ICU need decreased by more than 0.5 (per 100k).
+# - Only countries for which the ICU need decreased by more than 0.1 (per 100k).
 
 #hide_input
 style_news_icu(df_data.loc[icu_decrease])

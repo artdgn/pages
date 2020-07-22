@@ -173,7 +173,8 @@ class AgeAdjustedData:
         ## https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf
         ## 4.4% serious symptomatic cases for UK
         ## adjusting here by age by using IFRs ratios
-        icu_percent_s = 0.044 * ifr_s / ifr_s['United Kingdom']
+        ## adjusting by UK's past testing bias (14) since the 4.4% figure is for reported cases
+        icu_percent_s = 0.044 * (ifr_s / ifr_s['United Kingdom']) / 14
 
         return ifr_s, population_s, icu_percent_s
 
@@ -613,7 +614,7 @@ class Model:
             ind = day_one + day - 1
             suffix = f'.+{day}d' if day > 1 else ''
 
-            icu_max = df['age_adjusted_icu_percentage'] * 1e5 / df['testing_bias']
+            icu_max = df['age_adjusted_icu_percentage'] * 1e5
 
             df[f'needICU.per100k{suffix}'] = act[ind] * icu_max
             df[f'needICU.per100k{suffix}.max'] = act_max[ind] * icu_max
@@ -826,8 +827,7 @@ class PandasStyling:
         df.index = df.apply(
             lambda s: f"""
             <font size={font_size}>{s['emoji_flag']} <a href=
-            "https://duckduckgo.com/?q=
-            covid19+pandemic+in+{'+'.join(s.name.lower().split())}+country" 
+            "https://duckduckgo.com/?q=covid19 pandemic in {s.name} country" 
             target="_blank">{s.name}</a></font>""", axis=1)
         return df
 
