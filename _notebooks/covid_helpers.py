@@ -770,7 +770,7 @@ def altair_sir_plot(df_alt, default_country):
 def altair_multiple_countries_infected(df_alt_all,
                                        countries,
                                        title,
-                                       days_back=90,
+                                       days_back=120,
                                        marker_day=10):
     if not len(countries):
         return

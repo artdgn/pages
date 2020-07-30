@@ -147,7 +147,7 @@ df_show = df_show[cols.keys()].rename(columns=cols)
 
 #hide_input
 df_alt = pd.concat([d.reset_index() for d in debug_dfs], axis=0)
-df_alt_filt = df_alt[(df_alt['day'] > -60) & (df_alt['country'].isin(df.index))]
+df_alt_filt = df_alt[(df_alt['day'] > -120) & (df_alt['country'].isin(df.index))]
 covid_helpers.altair_sir_plot(df_alt_filt, df['Deaths.new.per100k'].idxmax())
 
 # ## Full table with more details

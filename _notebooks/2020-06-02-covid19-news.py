@@ -417,7 +417,7 @@ all_news = (new_waves, slowing_outbreaks,
             higher_death_burden, lower_death_burden,
             not_active, no_deaths, no_cases_and_deaths, new_entries)
 news_countries = [c for g in all_news for c in g]
-df_alt_filt = df_alt_all[(df_alt_all['day'] > -60) & 
+df_alt_filt = df_alt_all[(df_alt_all['day'] > -120) &
                          (df_alt_all['country'].isin(news_countries))]
 covid_helpers.altair_sir_plot(df_alt_filt, new_waves[0])
 
