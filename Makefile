@@ -58,10 +58,11 @@ restart-jekyll: .FORCE
 VENV_ACTIVATE=. .venv/bin/activate
 
 .venv:
-	python3 -m venv .venv
+	python3.7 -m venv .venv
 
 requirements.txt: .venv .FORCE
 	$(VENV_ACTIVATE); \
+	rm requirements.txt; \
 	pip install -U pip pip-tools; \
 	pip-compile requirements.in
 
