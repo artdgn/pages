@@ -90,13 +90,33 @@ class AgeAdjustedData:
         o99 = '95-99'
         o100p = '100+'
 
-        # https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3590771
-        # ny = new york
-        ny17 = 'ny17'  # 0-17
-        ny44 = 'ny44'  # 18-44
-        ny64 = 'ny64'  # 45-64
-        ny74 = 'ny74'  # 65-74
-        ny75p = 'ny75p'  # 75+
+    # paper: https://www.nature.com/articles/s41586-020-2918-0#MOESM1
+    # table S3 from supplementary material:
+    #   https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-020-2918-0/MediaObjects/41586_2020_2918_MOESM1_ESM.pdf
+    intl_ifrs = pd.Series({
+        Cols.o4: 0.003,
+        Cols.o9: 0.001,
+        Cols.o14: 0.001,
+        Cols.o19: 0.003,
+        Cols.o24: 0.006,
+        Cols.o29: 0.013,
+        Cols.o34: 0.024,
+        Cols.o39: 0.040,
+        Cols.o44: 0.075,
+        Cols.o49: 0.121,
+        Cols.o54: 0.207,
+        Cols.o59: 0.323,
+        Cols.o64: 0.456,
+        Cols.o69: 1.075,
+        Cols.o74: 1.674,
+        Cols.o79: 3.203,
+        Cols.o84: 8.292,  # 80+ is a single bucket in that paper
+        Cols.o89: 8.292,
+        Cols.o94: 8.292,
+        Cols.o99: 8.292,
+        Cols.o100p: 8.292,
+    })
+    intl_ifrs *= 0.01  # convert from percent to ratio
 
     @classmethod
     def load(cls):
@@ -144,30 +164,8 @@ class AgeAdjustedData:
         # convert to ratios
         df_pct = (df_num.T / df_num.sum(1)).T
 
-        # calulate NY bucket percentages
-        cols = cls.Cols
-        df_pct[cols.ny17] = df_pct[[cols.o4, cols.o9,
-                                    cols.o14, cols.o19]].sum(1)
-        df_pct[cols.ny44] = df_pct[[cols.o24, cols.o29,
-                                    cols.o34, cols.o39,
-                                    cols.o44]].sum(1)
-        df_pct[cols.ny64] = df_pct[[cols.o49,
-                                    cols.o54, cols.o59,
-                                    cols.o64]].sum(1)
-        df_pct[cols.ny74] = df_pct[[cols.o69, cols.o74]].sum(1)
-        df_pct[cols.ny75p] = df_pct[[cols.o79,
-                                     cols.o84, cols.o89,
-                                     cols.o94, cols.o99,
-                                     cols.o100p]].sum(1)
-        # check: df_pct[[cols.ny17, cols.ny44, cols.ny64, cols.ny74, cols.ny75p]].sum(1)
-
         # calculate IFR
-        # https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3590771
-        #  Table 1
-        ifr_s = pd.Series(np.dot(df_pct
-                                 [[cols.ny17, cols.ny44, cols.ny64, cols.ny74, cols.ny75p]],
-                                 [0.00002, 0.00087, 0.00822, 0.02626, 0.07137]),
-                          index=df_pct.index)
+        ifr_s = pd.Series(np.dot(df_pct, cls.intl_ifrs), index=df_pct.index)
 
         ## icu need estimation
         ## https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf
