@@ -903,12 +903,19 @@ class GeoMap:
     def make_map_figure(cls,
                         df_plot_geo,
                         col='transmission_rate',
+                        err_col='transmission_rate_std',
                         title='Transmission rate<br>percent (blue-red)',
                         subtitle='Transmission rate: over 5% (red) '
-                                 'spreading, under 5% (blue) recovering'):
+                                 'spreading, under 5% (blue) recovering',
+                        hover_text_func = None,
+                        scale_max=10,
+                        colorscale='Bluered',
+                        ):
         import plotly.graph_objects as go
 
-        df_plot_geo['text'] = (df_plot_geo.apply(
+        # hover text
+        hover_text_func = (
+            hover_text_func if callable(hover_text_func) else
             lambda r: (
                 "<br>"
                 f"Cases (reported): {r['Cases.total']:,.0f} (+<b>{r['Cases.new']:,.0f}</b>)<br>"
@@ -916,7 +923,9 @@ class GeoMap:
                 f"Affected percent: <b>{r['affected_ratio.est']:.1%}</b><br>"
                 f"Transmission rate: <b>{r['transmission_rate']:.1%}</b> ± {r['transmission_rate_std']:.1%}<br>"
                 f"Deaths: {r['Deaths.total']:,.0f} (+<b>{r['Deaths.new']:,.0f}</b>)<br>"
-            ), axis=1))
+            )
+        )
+        df_plot_geo['text'] = df_plot_geo.apply(hover_text_func, axis=1)
 
         percent = ('rate' in col or 'ratio' in col)
 
@@ -926,20 +935,20 @@ class GeoMap:
                 geojson=df_plot_geo['geometry'].__geo_interface__,
                 z=df_plot_geo[col].fillna(float('nan')) * (100 if percent else 1),
                 zmin=0,
-                zmax=10,
+                zmax=scale_max,
                 text=df_plot_geo['text'],
                 ids=df_plot_geo['country'],
                 customdata=cls.error_series_to_string_list(
                     series=df_plot_geo[col],
-                    err_series=df_plot_geo['transmission_rate_std'],
+                    err_series=df_plot_geo[err_col] if err_col else None,
                     percent=percent
                 ),
                 hovertemplate="<b>%{id}</b>:<br><b>%{z:.1f}%{customdata}</b><br>%{text}<extra></extra>",
-                colorscale='BLuered',
+                colorscale=colorscale,
+                colorbar={'title': {'text': f'<b>{title}</b>'}},
                 autocolorscale=False,
                 marker_line_color='#9fa8ad',
                 marker_line_width=0.5,
-                colorbar_title=f'<b>{title}</b>',
             ))
 
         fig.update_layout(
@@ -979,7 +988,8 @@ class GeoMap:
 
     @classmethod
     def button_dict(cls, series, title, colorscale, scale_max=None,
-                    percent=False, subtitle=None, err_series=None):
+                    percent=False, subtitle=None, err_series=None,
+                    hover_text_list=None, colorbar_title=None):
         import plotly.express as px
 
         series = series.fillna(float('nan'))
@@ -992,14 +1002,21 @@ class GeoMap:
 
         max_arg = series.max() if scale_max is None else min(scale_max, series.max())
 
-        return dict(args=[
-            {'z': [series.to_list()],
-             'zmax': [max_arg],
-             'colorbar': [{'title': {'text': f'<b>{title}</b>'}}],
-             'colorscale': [scale_arg],
-             'customdata': [cls.error_series_to_string_list(
-                 series, err_series=err_series, percent=percent)]
-             },
-            {'title': {'text': f"<b>Map of</b>: {subtitle}",
-                       'y': 0.875, 'x': 0.005}}],
-            label=title, method="update")
+        data_args_dict = {
+            'z': [series.to_list()],
+            'zmax': [max_arg],
+            'colorbar': [{'title': {'text': f'<b>{colorbar_title or title}</b>'}}],
+            'colorscale': [scale_arg],
+            'customdata': [cls.error_series_to_string_list(
+                series, err_series=err_series, percent=percent)]
+        }
+
+        if hover_text_list:
+            data_args_dict['text'] = [hover_text_list]
+
+        return dict(args=[data_args_dict,
+                          {'title': {'text': f"<b>Map of</b>: {subtitle}",
+                                     'y': 0.875, 'x': 0.005}}
+                          ],
+                    label=title,
+                    method="update")
