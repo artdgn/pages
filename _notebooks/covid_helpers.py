@@ -1,5 +1,6 @@
 import os
 import re
+from typing import Tuple, List
 from urllib import request
 
 import numpy as np
@@ -423,19 +424,28 @@ class CovidData:
               .sort_values('Cases.new', ascending=False))
         df['Fatality Rate'] /= 100
 
+        # add emoji flags
         df['emoji_flag'] = EmojiFlags.load().set_index(COL_REGION)[EmojiFlags.emoji_col]
         df['emoji_flag'] = df['emoji_flag'].fillna('')
 
+        # last dates
         df = self.add_last_dates(df)
 
+        # age adjusted data
         (df['age_adjusted_ifr'],
          df['population'],
          df['age_adjusted_icu_percentage']) = AgeAdjustedData.load()
 
+        # add per population columns
         df.dropna(subset=['population'], inplace=True)
-
         for col, per_100k_col in zip(self.ABS_COLS, self.PER_100K_COLS):
             df[per_100k_col] = df[col] * 1e5 / df['population']
+
+        # add ICU capacity data
+        df_beds = self.beds_df()
+        df['icu_capacity_per100k'] = df_beds['icu_per_100k']
+        df['icu_spare_capacity_per100k'] = (
+                df['icu_capacity_per100k'] * self.icu_spare_capacity_ratio)
 
         return df
 
@@ -464,16 +474,6 @@ class CovidData:
             df[est_col] = df['testing_bias'] * df[col]
 
         return df.sort_values('Cases.new.est', ascending=False)
-
-    def table_with_icu_capacities(self):
-        df = self.table_with_estimated_cases()
-
-        df_beds = self.beds_df()
-
-        df['icu_capacity_per100k'] = df_beds['icu_per_100k']
-
-        df['icu_spare_capacity_per100k'] = df['icu_capacity_per100k'] * self.icu_spare_capacity_ratio
-        return df
 
     @classmethod
     def filter_df(cls, df, cases_filter=1000, deaths_filter=20, population_filter=3e5):
@@ -512,8 +512,9 @@ class CovidData:
 
         return weighted_mean - 1, weighted_std
 
-    def table_with_projections(self, projection_days=(7, 14, 30), debug_dfs=False):
-        df = self.table_with_icu_capacities()
+    def table_with_current_rates_and_ratios(
+            self) -> Tuple[pd.DataFrame, List[pd.Series], List[pd.Series]]:
+        df = self.table_with_estimated_cases()
 
         df['affected_ratio'] = df['Cases.total'] / df['population']
 
@@ -521,11 +522,20 @@ class CovidData:
 
         past_active, past_recovered = self._calculate_recovered_and_active_until_now(df)
 
-        df['transmission_rate'], df['transmission_rate_std'] = Model.growth_to_infection_rate(
+        df['current_active_ratio'] = past_active[-1].fillna(0)
+        df['current_recovered_ratio'] = past_recovered[-1].fillna(0)
+
+        df['transmission_rate'], df['transmission_rate_std'] = Model.growth_to_transmition_rate(
             growth=df['growth_rate'],
-            rec=past_recovered[-1],
-            act=past_active[-1],
+            rec=df['current_recovered_ratio'],
+            act=df['current_active_ratio'],
             growth_std=df['growth_rate_std'])
+
+        return df, past_active, past_recovered
+
+    def table_with_projections(self, projection_days=(7, 14, 30), debug_dfs=False):
+
+        df, past_active, past_recovered = self.table_with_current_rates_and_ratios()
 
         df, traces = Model.run_model_forward(
             df,
@@ -554,12 +564,18 @@ class CovidData:
         actives, recs = [], []
         zeros_series = lagged_cases_ratios[self.dt_cols[0]] * 0  # this is to have consistent types
         for day in range(len(self.dt_cols)):
+            # previous day
             prev_rec = recs[day - 1] if day > 0 else zeros_series
+            # lagged recoveries
             tot_lagged_9 = lagged_cases_ratios[self.dt_cols[day - 9]] if day >= 9 else zeros_series
             new_recs = prev_rec + (tot_lagged_9 - prev_rec) * Model.recovery_lagged9_rate
-            new_recs[new_recs > 1] = 1
+            # clip recoveries by current cases
+            cur_cases = lagged_cases_ratios[self.dt_cols[day]]
+            new_recs[new_recs > cur_cases] = cur_cases[new_recs > cur_cases]
+            new_actives = cur_cases - new_recs
+            # assign
             recs.append(new_recs)
-            actives.append(lagged_cases_ratios[self.dt_cols[day]] - new_recs)
+            actives.append(new_actives)
 
         return actives, recs
 
@@ -578,7 +594,7 @@ class Model:
                           projection_days,
                           ):
 
-        sus, act, rec = cls._run_sir_mode(
+        sus, act, rec = cls._run_sir_model(
             past_recovered, past_active, df['growth_rate'], n_days=projection_days[-1])
 
         # sample more growth rates
@@ -589,7 +605,7 @@ class Model:
         for ratio in np.linspace(-1, 1, 10):
             pert_growth = df['growth_rate'] + ratio * df['growth_rate_std']
             pert_growth[pert_growth < 0] = 0
-            sus_other, act_other, rec_other = cls._run_sir_mode(
+            sus_other, act_other, rec_other = cls._run_sir_model(
                 past_recovered, past_active, pert_growth, n_days=projection_days[-1])
             for s_list, s in zip(sus_lists, sus_other):
                 s_list.append(s)
@@ -633,7 +649,7 @@ class Model:
         return df, traces
 
     @classmethod
-    def growth_to_infection_rate(cls, growth, rec, act, growth_std=None):
+    def growth_to_transmition_rate(cls, growth, rec, act, growth_std=None):
         daily_delta = growth
         tot = rec + act
         active = act
@@ -659,10 +675,10 @@ class Model:
         return infect_rate, infect_std
 
     @classmethod
-    def _run_sir_mode(cls, past_rec, past_act, growth, n_days):
+    def _run_sir_model(cls, past_rec, past_act, growth, n_days):
         rec, act = past_rec.copy(), past_act.copy()
 
-        infect_rate, _ = cls.growth_to_infection_rate(growth, rec[-1], act[-1])
+        infect_rate, _ = cls.growth_to_transmition_rate(growth, rec[-1], act[-1])
 
         # simulate
         for i in range(n_days):
