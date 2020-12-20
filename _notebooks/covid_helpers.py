@@ -525,7 +525,7 @@ class CovidData:
         df['current_active_ratio'] = past_active[-1].fillna(0)
         df['current_recovered_ratio'] = past_recovered[-1].fillna(0)
 
-        df['transmission_rate'], df['transmission_rate_std'] = Model.growth_to_transmition_rate(
+        df['transmission_rate'], df['transmission_rate_std'] = Model.growth_to_transmission_rate(
             growth=df['growth_rate'],
             rec=df['current_recovered_ratio'],
             act=df['current_active_ratio'],
@@ -649,7 +649,7 @@ class Model:
         return df, traces
 
     @classmethod
-    def growth_to_transmition_rate(cls, growth, rec, act, growth_std=None):
+    def growth_to_transmission_rate(cls, growth, rec, act, growth_std=None):
         daily_delta = growth
         tot = rec + act
         active = act
@@ -678,7 +678,7 @@ class Model:
     def _run_sir_model(cls, past_rec, past_act, growth, n_days):
         rec, act = past_rec.copy(), past_act.copy()
 
-        infect_rate, _ = cls.growth_to_transmition_rate(growth, rec[-1], act[-1])
+        infect_rate, _ = cls.growth_to_transmission_rate(growth, rec[-1], act[-1])
 
         # simulate
         for i in range(n_days):

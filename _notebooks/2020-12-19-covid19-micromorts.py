@@ -180,11 +180,11 @@ fig.show()
 # ### Appendix
 # <a id='appendix'></a>
 # - Monthly risk calculation:
-# $$ 
-# Monthly\,Risk = Infection\,Fatality\,Rate_{age\,group} \cdot P_{montly\,infection}\\
-# P_{montly\,infection} = 1 - (1 - P_{daily\,infection}) ^ {30}\\ 
+# $$
+# Monthly\,Risk = Infection\,Fatality\,Rate_{age\,group} \cdot P_{montly\,infection}\\\,\\
+# P_{montly\,infection} = 1 - (1 - P_{daily\,infection}) ^ {30\,days}\\\,\\
 # P_{daily\,infection} = 
-# \frac{Actively\,Infected\,\%\cdot Transmition\,Rate\,\%}
+# \frac{Actively\,Infected\,\%\cdot Transmission\,Rate\,\%}
 # {1 - Actively\,Infected\,\% - Recovered\,or\, Dead\,\%} \\
 # $$
 #   - "Actively Infected" and "Recovered or Dead" population percentages are estimated from past deaths and cases ([See estimations appendix in main notebook](/pages/covid-progress-projections/#appendix)).
@@ -193,5 +193,5 @@ fig.show()
 #   - Micromort deaths risk comparative data (travel and sports) are taken from [Wikipedia article on Micromorts](https://en.wikipedia.org/wiki/Micromort).
 # - The risk estimates assume **average exposure** typical of that country (as it manifests in the recent case and deaths data). Protective measures (e.g. masks) and self isolation should of course reduce the risk (if practiced more than the average for the population at the time).
 # - The risk estimates are for **regular susceptible** population. People who have been infected already are excluded (as recovered). Susceptible population is assumed to not yet be **vaccinated**. When vaccination data will become available, vaccinated population will be excluded. 
-# - The risk for the **vaccinated** is not calculated here. The efficacy and effects on IFRs will probably only be well known in the future. It will also likely depend on the specific vaccine used. It is currently widely assumed that the reported [Moderna](https://en.wikipedia.org/wiki/MRNA-1273) and [Pfizer-BioNTech](https://en.wikipedia.org/wiki/Tozinameran) might reduce the change of infection by around **90%**.
+# - The risk for the **vaccinated** is not calculated here. The efficacy and effects on IFRs will probably only be well known in the future. It will also likely depend on the specific vaccine used. It is currently widely assumed that the reported [Moderna](https://en.wikipedia.org/wiki/MRNA-1273) and [Pfizer-BioNTech](https://en.wikipedia.org/wiki/Tozinameran) might reduce the chance of infection by around **90%**.
 # - Per country predictive models of population ratios can be explored in [trajectories plots in main notebook](/pages/covid-progress-projections/#Interactive-plot-of-Model-predictions)

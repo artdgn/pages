@@ -142,7 +142,7 @@ def infected_plots(countries, title):
         df_alt_all, countries=countries, title=title, marker_day=day_diff)
 
 
-# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+# > Tip: Click country name in legend to switch countries. Use mouse wheel to zoom Y axis.
 
 #hide_input
 infected_plots(new_waves, "Countries with new waves (vs. 10 days ago)")
@@ -168,7 +168,7 @@ Markdown(f"## &#128994; Good news: slowing waves {emoji_flags(slowing_outbreaks)
 #hide_input
 style_news_infections(df_data.loc[slowing_outbreaks])
 
-# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+# > Tip: Click country name in legend to switch countries. Use mouse wheel to zoom Y axis.
 
 #hide_input
 infected_plots(slowing_outbreaks, "Countries with slowing waves (vs. 10 days ago)")
@@ -215,7 +215,7 @@ Markdown(f"## &#11093; Bad news: higher ICU need {emoji_flags(icu_increase)}")
 #hide_input
 style_news_icu(df_data.loc[icu_increase])
 
-# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+# > Tip: Click country name in legend to switch countries. Use mouse wheel to zoom Y axis.
 
 #hide_input
 infected_plots(icu_increase, "Countries with Higher ICU need (vs. 10 days ago)")
@@ -234,7 +234,7 @@ Markdown(f"## &#128994; Good news: lower ICU need {emoji_flags(icu_decrease)}")
 #hide_input
 style_news_icu(df_data.loc[icu_decrease])
 
-# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+# > Tip: Click country name in legend to switch countries. Use mouse wheel to zoom Y axis.
 
 #hide_input
 infected_plots(icu_decrease, "Countries with Lower ICU need (vs. 10 days ago)")
@@ -252,7 +252,7 @@ Markdown(f"## &#11093; Bad news: new first significant outbreaks {emoji_flags(ne
 #hide_input
 style_news_infections(df_data.loc[new_entries])
 
-# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+# > Tip: Click country name in legend to switch countries. Use mouse wheel to zoom Y axis.
 
 #hide_input
 infected_plots(new_entries, "Countries with first large outbreak (vs. 10 days ago)")
@@ -289,7 +289,7 @@ Markdown(f"## &#128994; Good news: no new cases or deaths {emoji_flags(no_cases_
 #hide_input
 style_no_news(df_data.loc[no_cases_and_deaths])
 
-# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+# > Tip: Click country name in legend to switch countries. Use mouse wheel to zoom Y axis.
 
 #hide_input
 infected_plots(no_cases_and_deaths, "New countries with no new cases or deaths (vs. 10 days ago)")
@@ -308,7 +308,7 @@ Markdown(f"## Mixed news: no new deaths, only new cases {emoji_flags(no_deaths)}
 #hide_input
 style_news_infections(df_data.loc[no_deaths])
 
-# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+# > Tip: Click country name in legend to switch countries. Use mouse wheel to zoom Y axis.
 
 #hide_input
 infected_plots(no_deaths, "Countries with only new cases (vs. 10 days ago)")
@@ -327,7 +327,7 @@ Markdown(f"## No news: continously inactive countries {emoji_flags(not_active)}"
 #hide_input
 style_no_news(df_data.loc[not_active])
 
-# > Tip: Click country name in legend to switch countries. Uze mouse wheel to zoom Y axis.
+# > Tip: Click country name in legend to switch countries. Use mouse wheel to zoom Y axis.
 
 #hide_input
 infected_plots(not_active, "Continuosly inactive countries (now and 10 days ago)")
