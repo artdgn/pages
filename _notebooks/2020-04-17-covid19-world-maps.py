@@ -44,7 +44,26 @@ Markdown(f"***Based on data up to: {covid_data.cur_date}***")
 #hide
 geo_helper = covid_helpers.GeoMap
 df_geo = geo_helper.make_geo_df(df_all, cases_filter=1000, deaths_filter=20)
-fig = geo_helper.make_map_figure(df_geo)
+def hover_text_func(r: pd.Series):
+    return (
+        "<br>"
+        f"Cases (reported): {r['Cases.total']:,.0f} (+<b>{r['Cases.new']:,.0f}</b>)<br>"
+        f"Cases (estimated): {r['Cases.total.est']:,.0f} (+<b>{r['Cases.new.est']:,.0f}</b>)<br>"
+        f"Affected percent: <b>{r['affected_ratio.est']:.1%}</b><br>"
+        f"Transmission rate: <b>{r['transmission_rate']:.1%}</b> ± {r['transmission_rate_std']:.1%}<br>"
+        f"Deaths: {r['Deaths.total']:,.0f} (+<b>{r['Deaths.new']:,.0f}</b>)<br>"
+    )
+fig = geo_helper.make_map_figure(
+    df_geo,
+    col='transmission_rate',
+    err_col='transmission_rate_std',
+    colorbar_title='Transmission rate<br>percent (blue-red)',
+    subtitle='Transmission rate: over 5% (red) '
+             'spreading, under 5% (blue) recovering',
+    hover_text_func=hover_text_func,
+    scale_max=10,
+    colorscale='Bluered',
+)
 
 #hide
 df_geo['affected_ratio.change.monthly.rate'] = (df_geo['affected_ratio.est.+7d'] - 

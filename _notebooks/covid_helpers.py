@@ -902,29 +902,18 @@ class GeoMap:
     @classmethod
     def make_map_figure(cls,
                         df_plot_geo,
-                        col='transmission_rate',
-                        err_col='transmission_rate_std',
-                        title='Transmission rate<br>percent (blue-red)',
-                        subtitle='Transmission rate: over 5% (red) '
-                                 'spreading, under 5% (blue) recovering',
-                        hover_text_func = None,
-                        scale_max=10,
+                        col,
+                        colorbar_title,
+                        subtitle,
+                        err_col=None,
+                        hover_text_func=None,
+                        scale_max=None,
                         colorscale='Bluered',
                         ):
         import plotly.graph_objects as go
 
         # hover text
-        hover_text_func = (
-            hover_text_func if callable(hover_text_func) else
-            lambda r: (
-                "<br>"
-                f"Cases (reported): {r['Cases.total']:,.0f} (+<b>{r['Cases.new']:,.0f}</b>)<br>"
-                f"Cases (estimated): {r['Cases.total.est']:,.0f} (+<b>{r['Cases.new.est']:,.0f}</b>)<br>"
-                f"Affected percent: <b>{r['affected_ratio.est']:.1%}</b><br>"
-                f"Transmission rate: <b>{r['transmission_rate']:.1%}</b> ± {r['transmission_rate_std']:.1%}<br>"
-                f"Deaths: {r['Deaths.total']:,.0f} (+<b>{r['Deaths.new']:,.0f}</b>)<br>"
-            )
-        )
+        hover_text_func = hover_text_func if callable(hover_text_func) else lambda r: ''
         df_plot_geo['text'] = df_plot_geo.apply(hover_text_func, axis=1)
 
         percent = ('rate' in col or 'ratio' in col)
@@ -945,7 +934,7 @@ class GeoMap:
                 ),
                 hovertemplate="<b>%{id}</b>:<br><b>%{z:.1f}%{customdata}</b><br>%{text}<extra></extra>",
                 colorscale=colorscale,
-                colorbar={'title': {'text': f'<b>{title}</b>'}},
+                colorbar={'title': {'text': f'<b>{colorbar_title}</b>'}},
                 autocolorscale=False,
                 marker_line_color='#9fa8ad',
                 marker_line_width=0.5,
