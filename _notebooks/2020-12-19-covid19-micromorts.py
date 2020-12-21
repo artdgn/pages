@@ -177,7 +177,7 @@ fig.show()
 
 # > Tip: The map is zoomable and draggable. Double click to reset.
 
-# ### Appendix
+# ### Appendix: assumptions, explanations.
 # <a id='appendix'></a>
 # - Monthly risk calculation:
 # $$
@@ -191,7 +191,16 @@ fig.show()
 #   - Age specific IFRs are taken from recent [Nature international meta-study of IFRs](https://www.nature.com/articles/s41586-020-2918-0#MOESM1).
 #   - Country demographics for country average IFRs are taken from [UN demographic data for 2020](https://population.un.org/wpp/Download/Standard/Population/).
 #   - Micromort deaths risk comparative data (travel and sports) are taken from [Wikipedia article on Micromorts](https://en.wikipedia.org/wiki/Micromort).
-# - The risk estimates assume **average exposure** typical of that country (as it manifests in the recent case and deaths data). Protective measures (e.g. masks) and self isolation should of course reduce the risk (if practiced more than the average for the population at the time).
-# - The risk estimates are for **regular susceptible** population. People who have been infected already are excluded (as recovered). Susceptible population is assumed to not yet be **vaccinated**. When vaccination data will become available, vaccinated population will be excluded. 
-# - The risk for the **vaccinated** is not calculated here. The efficacy and effects on IFRs will probably only be well known in the future. It will also likely depend on the specific vaccine used. It is currently widely assumed that the reported [Moderna](https://en.wikipedia.org/wiki/MRNA-1273) and [Pfizer-BioNTech](https://en.wikipedia.org/wiki/Tozinameran) might reduce the chance of infection by around **90%**.
-# - Per country predictive models of population ratios can be explored in [trajectories plots in main notebook](/pages/covid-progress-projections/#Interactive-plot-of-Model-predictions)
+#   - The calculation is done on daily basis and extrapolated naively to a month.
+# - **Why is everything "monthly"**? The main actionable question this analysis aims to help answer is **"How much risk is someone taking by not getting vaccinated now? What is the risk of waiting another month?"**. A daily timescale for this question is too short due to not being actionable, and on a scale much longer than a month the underlying data for calculations will change substantially (e.g. transmission rates, currently infected population) to not offer a reasonable appoximation. So a month felt to me as roughly the right time scale for the risk aggregation that is both easy to think about and should still be roughly correct.
+# - Assumptions & limitations:
+#     - The esposure is assumed to be **average exposure** typical of that country (as it manifests in the recent case and deaths data). Protective measures (e.g. masks) and self isolation should of course reduce the risk (if practiced more than the average for that population at that time).
+#     - Susceptible population is assumed to not yet be **vaccinated**. When vaccination prevalence will become substantial, data will become available, and calculations can be adjusted. The risk estimates are for **regular susceptible** population. People who have been infected already are excluded (as recovered).
+#     - All rates and percentages such as: transmission rate, active and recovered percentages are assumed to be **constant** during the month to keep the monthly calculation simple. This is of course NOT true. However although these rates do change, they usually change slowly enough for the likely result to still be of the same order of magnitude. It is possible to use values from a predictive model for this, but they too have errors (as they too are simplistic). For this analysis I preferred to go with the simple to calculate / understand approximation with a well understood error, than with the complex to calculate / understand approximation with an unknown error.
+#     - All the additional assumptions fom [estimations appendix in main notebook](/pages/covid-progress-projections/#appendix)
+# - Vaccination effect on risk:
+#     - The risk for the **vaccinated** is not calculated here. It is currently widely assumed that the reported [Moderna](https://en.wikipedia.org/wiki/MRNA-1273) and [Pfizer-BioNTech](https://en.wikipedia.org/wiki/Tozinameran) might reduce the **chance of infection** by around **90%**.
+#     - While there are well founded estimates for the effect on **infection chance**, the effect on IFR (fatality rate) is much less known: how does vaccination affect the severity of the desease *if* infected? Answering this will require studying millions of vaccinated people, so will only be available later.
+# - Additional related analyses:
+#     - Another map of statistics of cases, deaths, ICU need and affected population percentage can be explored in [world-map notebook](/pages/covid-world-maps)
+#     - Per country predictive models of population ratios can be explored in [trajectories plots in main notebook](/pages/covid-progress-projections/#Interactive-plot-of-Model-predictions)
