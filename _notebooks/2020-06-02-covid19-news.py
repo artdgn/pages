@@ -73,7 +73,7 @@ df_data['Deaths.diff.per100k'] = df_data['Deaths.total.diff'] / (df_data['popula
 df_data['transmission_rate.change'] = (df_data['transmission_rate'] / df_data['transmission_rate_past']) - 1
 df_data['affected_ratio.miss'] = (df_cur['affected_ratio.est'] / df_past['affected_ratio.est.+9d']) - 1
 df_data['needICU.per100k.miss'] = (df_cur['needICU.per100k'] / df_past['needICU.per100k.+9d']) - 1
-df_data['testing_bias.change'] = (df_data['testing_bias'] / df_past['testing_bias']) - 1
+df_data['testing_bias.change'] = (df_data['current_testing_bias'] / df_past['current_testing_bias']) - 1
 
 
 # -

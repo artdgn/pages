@@ -286,16 +286,17 @@ class EmojiFlags(ScrapedTableBase):
 
 class CovidData:
     COL_REGION = COL_REGION
-    ABS_COLS = ['Cases.total', 'Deaths.total', 'Cases.new', 'Deaths.new']
+    CASES_TOT = 'Cases.total'
+    CASES_NEW = 'Cases.new'
+    DEATHS_TOT = 'Deaths.total'
+    DEATHS_NEW = 'Deaths.new'
 
-    PER_100K_COLS = [f'{c}.per100k' for c in ABS_COLS]
-    CASES_COLS = ABS_COLS[::2] + PER_100K_COLS[::2]
-    EST_COLS = [f'{c}.est' for c in CASES_COLS]
+    PER_100K_SUFFIX = '.per100k'
 
-    dft_cases = SourceData.get_covid_dataframe('confirmed')
-    dft_deaths = SourceData.get_covid_dataframe('deaths')
-    dft_recovered = SourceData.get_covid_dataframe('recovered')
-    dt_cols_all = SourceData.get_dates(dft_cases)
+    dft_cases_raw = SourceData.get_covid_dataframe('confirmed')
+    dft_deaths_raw = SourceData.get_covid_dataframe('deaths')
+    # dft_recovered = SourceData.get_covid_dataframe('recovered')
+    dt_cols_all = SourceData.get_dates(dft_cases_raw)
 
     cur_date = pd.to_datetime(dt_cols_all[-1]).date().isoformat()
 
@@ -305,19 +306,17 @@ class CovidData:
     ## testing bias
     death_lag = 8
 
-    ## ICU spare capacity
-    # occupancy 66% for us:
-    #   https://www.sccm.org/Blog/March-2020/United-States-Resource-Availability-for-COVID-19
-    # occupancy average 75% for OECD:
-    #   https://www.oecd-ilibrary.org/social-issues-migration-health/health-at-a-glance-2019_4dd50c09-en
-    icu_spare_capacity_ratio = 0.3
-
     def __init__(self, days_offset=0):
         assert days_offset <= 0, 'day_offest can only be 0 or negative (in the past)'
         self.dt_cols = self.dt_cols_all[:(len(self.dt_cols_all) + days_offset)]
-        self.dft_cases_backfilled = self._cases_with_backfilled_unreported_days()
+        self.dft_cases_backfilled = self._cases_with_backfilled_unreported_days()[self.dt_cols]
+        self.dft_deaths = self.dft_deaths_raw.groupby(COL_REGION).sum()[self.dt_cols]
         self.dfc_cases = self.dft_cases_backfilled[self.dt_cols[-1]]
-        self.dfc_deaths = self.dft_deaths.groupby(COL_REGION)[self.dt_cols[-1]].sum()
+        self.dfc_deaths = self.dft_deaths[self.dt_cols[-1]]
+
+        # to be calculated later
+        self.testing_biases_dft: pd.DataFrame = None
+        self.cases_est_dft: pd.DataFrame = None
 
     def _cases_with_backfilled_unreported_days(self):
 
@@ -361,7 +360,7 @@ class CovidData:
 
             return pd.Series(out, index=series.index)
 
-        cases = self.dft_cases.groupby(self.COL_REGION).sum()[self.dt_cols_all]
+        cases = self.dft_cases_raw.groupby(self.COL_REGION).sum()[self.dt_cols_all]
         diffs = cases.diff(axis=1)
         diffs.iloc[:, 0] = cases.iloc[:, 0]  # replace resulting nans in first date's data
 
@@ -373,7 +372,7 @@ class CovidData:
         return self.dft_cases_backfilled[self.dt_cols[-lag]]
 
     def lagged_deaths(self, lag=PREV_LAG):
-        return self.dft_deaths.groupby(COL_REGION)[self.dt_cols[-lag]].sum()
+        return self.dft_deaths[self.dt_cols[-lag]]
 
     def add_last_dates(self, df):
 
@@ -384,9 +383,9 @@ class CovidData:
             else:
                 return float('nan')
 
-        df['last_case_date'] = (self.dft_cases.groupby(COL_REGION).sum().diff(axis=1)
+        df['last_case_date'] = (self.dft_cases_raw.groupby(COL_REGION).sum().diff(axis=1)
                                 .apply(last_date, axis=1))
-        df['last_death_date'] = (self.dft_deaths.groupby(COL_REGION).sum().diff(axis=1)
+        df['last_death_date'] = (self.dft_deaths_raw.groupby(COL_REGION).sum().diff(axis=1)
                                  .apply(last_date, axis=1))
         return df
 
@@ -398,9 +397,11 @@ class CovidData:
                     .sort_values(by=['Cases.total', 'Deaths.total'], ascending=[False, False])
                     .reset_index())
         df_table.rename(columns={'index': COL_REGION}, inplace=True)
-        for c in self.ABS_COLS[:2]:
-            df_table[c.replace('total', 'new')] = (df_table[c] - df_table[f'{c}.prev']).clip(0)  # DATA BUG
-        df_table['Fatality Rate'] = (100 * df_table['Deaths.total'] / df_table['Cases.total']).round(1)
+        for c in [self.CASES_TOT, self.DEATHS_TOT]:
+            df_table[c.replace('total', 'new')] = (
+                    df_table[c] - df_table[f'{c}.prev']).clip(0)  # DATA BUG
+        df_table['Fatality Rate'] = (100 * df_table['Deaths.total'] /
+                                     df_table['Cases.total']).round(1)
         df_table['Continent'] = df_table[COL_REGION].map(SourceData.mappings['map.continent'])
 
         # remove problematic
@@ -438,16 +439,68 @@ class CovidData:
 
         # add per population columns
         df.dropna(subset=['population'], inplace=True)
-        for col, per_100k_col in zip(self.ABS_COLS, self.PER_100K_COLS):
-            df[per_100k_col] = df[col] * 1e5 / df['population']
+        for col in [self.CASES_TOT, self.DEATHS_TOT, self.CASES_NEW, self.DEATHS_NEW]:
+            df[f'{col}{self.PER_100K_SUFFIX}'] = df[col] * 1e5 / df['population']
 
         # add ICU capacity data
         df_beds = self.beds_df()
         df['icu_capacity_per100k'] = df_beds['icu_per_100k']
-        df['icu_spare_capacity_per100k'] = (
-                df['icu_capacity_per100k'] * self.icu_spare_capacity_ratio)
 
         return df
+
+    def calculate_testing_biases_dft(
+            self, ifrs: pd.Series, min_window_lag = 60, min_window_deaths = 300
+    ) -> pd.DataFrame:
+        deaths_dft = self.dft_deaths
+        cases_dft = self.dft_cases_backfilled
+
+        def biases_vec(country: str) -> pd.Series:
+            d_vec = deaths_dft.loc[country].values
+            c_vec = cases_dft.loc[country].values
+            ifr = ifrs.loc[country]
+            left, right = self.death_lag, self.death_lag + min_window_lag
+            biases = np.ones_like(c_vec)
+
+            # short circuit and fallback if not enough data for windowed calculations
+            if d_vec[-1] < min_window_deaths:
+                if d_vec[-1] > 0:
+                    biases[:] = (d_vec[-1] / c_vec[-1]) / ifr
+                else:
+                    pass  # just return ones
+
+            else:
+                def diff_deaths(right, left):
+                    return d_vec[right] - d_vec[left]
+
+                def diff_cases(right, left):
+                    return c_vec[right - self.death_lag] - c_vec[left - self.death_lag]
+
+                while right <= (len(c_vec) - 1):
+                    if ((right - left) < min_window_lag or
+                            diff_deaths(right, left) < min_window_deaths):
+                        # grow window to the right if needed
+                        right += 1
+                        continue
+
+                    while ((right - left) > min_window_lag and
+                           diff_deaths(right, left) > min_window_deaths):
+                        # shrink window from the left if possible
+                        left += 1
+
+                    biases[right] = ((diff_deaths(right, left) / diff_cases(right, left))
+                                     / ifr)
+                    # advance left every time to prevent infinite loop
+                    left += 1
+
+                # use first non 1 (initialised) value to fill the initial values
+                fill_ind = np.where(biases != 1)[0][0]
+                biases[:fill_ind] = biases[fill_ind]
+
+            return pd.Series(biases, index=self.dt_cols)
+
+        testing_biases_dft = ifrs.index.to_series().apply(biases_vec)
+        testing_biases_dft[testing_biases_dft < 1] = 1
+        return testing_biases_dft
 
     def table_with_estimated_cases(self):
         """
@@ -460,20 +513,28 @@ class CovidData:
                 didn't change significantly during the last 8 days.
             - Recent new cases can be adjusted using the same testing_ratio bias.
         """
-
         df = self.overview_table_with_extra_data()
 
-        lagged_mortality_rate = (self.dfc_deaths + 1) / (self.lagged_cases(self.death_lag) + 2)
-        testing_bias = lagged_mortality_rate / df['age_adjusted_ifr']
-        testing_bias[testing_bias < 1] = 1
+        self.testing_biases_dft = self.calculate_testing_biases_dft(
+            df['age_adjusted_ifr'])
 
-        df['lagged_fatality_rate'] = lagged_mortality_rate
-        df['testing_bias'] = testing_bias
+        # adjust daily cases by closest approximation of testing bias at that point
+        cases_dft = self.dft_cases_backfilled
+        self.cases_est_dft = (cases_dft.diff(axis=1) * self.testing_biases_dft
+                              ).cumsum(axis=1).fillna(0).astype(int)
 
-        for col, est_col in zip(self.CASES_COLS, self.EST_COLS):
-            df[est_col] = df['testing_bias'] * df[col]
+        df['current_testing_bias'] = self.testing_biases_dft.iloc[:, -1]
 
-        return df.sort_values('Cases.new.est', ascending=False)
+        # total cases
+        df[f'{self.CASES_TOT}.est'] = self.cases_est_dft[self.dt_cols[-1]]
+        df[f'{self.CASES_TOT}{self.PER_100K_SUFFIX}.est'] = (
+                df[f'{self.CASES_TOT}.est'] * 1e5 / df['population'])
+
+        # new cases just need adjustments with current bias
+        for col in [self.CASES_NEW, f'{self.CASES_NEW}{self.PER_100K_SUFFIX}']:
+            df[f'{col}.est'] = df['current_testing_bias'] * df[col]
+
+        return df
 
     @classmethod
     def filter_df(cls, df, cases_filter=1000, deaths_filter=20, population_filter=3e5):
@@ -491,9 +552,9 @@ class CovidData:
     def smoothed_growth_rates(self, n_days):
         recent_dates = self.dt_cols[-n_days:]
 
-        cases = (self.dft_cases_backfilled[recent_dates] + 1)  # with pseudo counts
+        cases = self.cases_est_dft[recent_dates] + 1  # with pseudo counts
 
-        diffs = self.dft_cases_backfilled.diff(axis=1)[recent_dates]
+        diffs = self.cases_est_dft.diff(axis=1)[recent_dates]
         diffs[diffs < 0] = 0  # total cases cannot go down
 
         cases, diffs = cases.T, diffs.T  # broadcasting works correctly this way
@@ -553,9 +614,8 @@ class CovidData:
         return df
 
     def _calculate_recovered_and_active_until_now(self, df):
-        # estimated daily cases ratio of population
-        lagged_cases_ratios = (self.dft_cases_backfilled[self.dt_cols].T *
-                               df['testing_bias'].T / df['population'].T).T
+        # estimated daily cases ratios of population
+        lagged_cases_ratios = (self.cases_est_dft[self.dt_cols].T / df['population'].T).T
         # protect from testing bias over-inflation
         lagged_cases_ratios[lagged_cases_ratios > 1] = 1
 
@@ -943,7 +1003,7 @@ class GeoMap:
         fig.update_layout(
             title={'text': f"<b>Map of</b>: {subtitle}", 'y': 0.875, 'x': 0.005},
             annotations=[
-                dict(text="Data<br>choice:", showarrow=False, x=0.005, y=1.075, yref="paper", align="left")
+                dict(text="Map<br>choice:", showarrow=False, x=0.005, y=1.075, yref="paper", align="left")
             ],
             width=800,
             height=450,

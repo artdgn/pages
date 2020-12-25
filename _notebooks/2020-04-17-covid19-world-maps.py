@@ -39,7 +39,7 @@ df_all.columns.sort_values()
 
 #hide_input
 from IPython.display import Markdown
-Markdown(f"***Based on data up to: {covid_data.cur_date}***")
+Markdown(f"*Based on data up to*: ***{covid_data.cur_date}***")
 
 #hide
 geo_helper = covid_helpers.GeoMap
@@ -156,7 +156,7 @@ fig.update_layout(
             ],
             direction="down", bgcolor='#dceae1',
             pad={"r": 10, "t": 10},
-            showactive=False, x=0.325, xanchor="left", y=1.1, yanchor="top"),
+            showactive=False, x=0.305, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
                 geo_helper.button_dict(
@@ -184,7 +184,7 @@ fig.update_layout(
             ],
             direction="down", bgcolor='#efdaee',
             pad={"r": 10, "t": 10},
-            showactive=False, x=0.58, xanchor="left", y=1.1, yanchor="top"),
+            showactive=False, x=0.54, xanchor="left", y=1.1, yanchor="top"),
         dict(
             buttons=[
                 geo_helper.button_dict(
@@ -204,14 +204,14 @@ fig.update_layout(
                     colorbar_title='Deaths',
                     subtitle='Recent deaths in last 5 days'),
                 geo_helper.button_dict(
-                    df_geo['lagged_fatality_rate'], 'Fatality rate %<br>(lagged)', 
-                    colorscale='Reds', scale_max=20, percent=True,
-                    colorbar_title='Fatality rate',
-                    subtitle='Reported fatality rate (relative to reported cases 8 days ago)'),
+                    df_geo['current_testing_bias'], 'Current testing<br>bias',
+                    colorscale='YlOrRd', scale_max=20, percent=False,
+                    colorbar_title='Testing bias',
+                    subtitle='Current testing bias'),
             ],
             direction="down", bgcolor='#efdbda',
             pad={"r": 10, "t": 10},
-            showactive=False, x=0.775, xanchor="left", y=1.1, yanchor="top"),
+            showactive=False, x=0.715, xanchor="left", y=1.1, yanchor="top"),
     ]);
 
 # + [markdown] execution={"iopub.execute_input": "2020-05-01T12:16:14.297479Z", "iopub.status.busy": "2020-05-01T12:16:14.226157Z", "iopub.status.idle": "2020-05-01T12:16:14.457572Z", "shell.execute_reply": "2020-05-01T12:16:14.457201Z"} papermill={"duration": 0.238524, "end_time": "2020-05-01T12:16:14.457650", "exception": false, "start_time": "2020-05-01T12:16:14.219126", "status": "completed"} tags=[]

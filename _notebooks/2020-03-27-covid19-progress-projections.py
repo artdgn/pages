@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.4.2
+#       jupytext_version: 1.6.0
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -44,7 +44,7 @@ df.columns
 
 #hide_input
 from IPython.display import Markdown
-Markdown(f"***Based on data up to: {covid_data.cur_date}***")
+Markdown(f"*Based on data up to*: ***{covid_data.cur_date}***")
 
 # ## Projected need for ICU beds
 # > Countries sorted by current estimated need, split into Growing and Recovering
@@ -109,7 +109,7 @@ cols = {'Cases.new.est': 'Estimated <br> <i>recent</i> cases<br>during<br>last 5
        'transmission_rate': 'Estimated<br>daily<br>transmission<br>rate',
        'affected_ratio.est.+14d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 14 days',
        'affected_ratio.est.+30d': 'Projected<br><i>total</i><br>affected<br>percentage<br>In 30 days',       
-       'lagged_fatality_rate': 'Lagged<br>fatality <br> rate',
+       'current_testing_bias': 'Current<br>testing<br>bias',
       }
 df_show = stylers.country_index_emoji_link(df_cases, font_size=1)
 df_show['affected_ratio.est.+14d'] = stylers.with_errs_ratio(
@@ -128,10 +128,12 @@ df_show = df_show[cols.keys()].rename(columns=cols)
            s_v=df_cases['transmission_rate']/0.33, subset=cols['transmission_rate'])
     .bar(subset=cols['Cases.new.est'], color='#b57b17')
     .bar(subset=cols['affected_ratio.est'], color='#5dad64', vmin=0, vmax=1.0)
-    .bar(subset=cols['lagged_fatality_rate'], color='#420412', vmin=0, vmax=0.2)
-    .applymap(lambda _: 'color: red', subset=cols['lagged_fatality_rate'])
+    .bar(subset=cols['current_testing_bias'], color='#420412', vmin=1, vmax=20)
+    .applymap(lambda _: 'color: red', subset=cols['current_testing_bias'])
     .format('<b>{:,.0f}</b>', subset=cols['Cases.new.est'])
-    .format('<b>{:.1%}</b>', subset=[cols['lagged_fatality_rate'], cols['affected_ratio.est']]))
+    .format('<b>{:.1%}</b>', subset=cols['affected_ratio.est'])
+    .format('<b>{:.1f}</b>', subset=cols['current_testing_bias'])
+ )
 # -
 
 
@@ -196,12 +198,12 @@ df_show[cols['deaths']] =(df_show.apply(lambda r: f"\
                          (+<b>{r['Deaths.new.per100k']:,.1f}</b></i>) \
                          ", axis=1))
 
-cols['rates'] = 'Rates:<br>-Transmission<br>-Cases<br>-Lagged<br>fatality<br>(<i>Reported</i>)'
+cols['rates'] = 'Rates:<br>-Transmission<br>-Cases<br>-Testing<br>bias<br>(<i>Fatality</i>)'
 df_show[cols['rates']] =(df_show.apply(lambda r: f" \
                          <b>{r['transmission_rate']:,.1%}</b> \
                          ± <font size=1><i>{r['transmission_rate_std']:.0%}</i></font><br>\
                          {r['growth_rate']:,.1%}<br>\
-                         <b><font color='red'>{r['lagged_fatality_rate']:,.1%}</font></b>\
+                         <b>{r['current_testing_bias']:,.1f}</b>\
                          <font size=1>(<i>{r['Fatality Rate']:,.1%}</i>)</font>\
                          ", axis=1))
 
@@ -237,7 +239,7 @@ df_show[cols['rates']] =(df_show.apply(lambda r: f" \
 #     - Each country has a different testing policy and capacity and cases are under-reported in some countries. Using an estimated IFR (fatality rate) we can estimate the number of cases some time ago by using the total deaths until today.
 #     - IFRs for each country is estimated using the age adjusted IFRs from [International IFRS study](https://www.nature.com/articles/s41586-020-2918-0#MOESM1) and [UN demographic data for 2020](https://population.un.org/wpp/Download/Standard/Population/). These IFRs can be found in `df['age_adjusted_ifr']` column.
 #     - The average fatality lag is assumed to be 8 days on average for a case to go from being confirmed positive (after incubation + testing lag) to death. This is the same figure used by ["Estimating The Infected Population From Deaths"](https://covid19dashboards.com/covid-infected/).
-#     - Testing bias adjustment: the actual lagged fatality rate is than divided by the IFR to estimate the testing bias in a country. The estimated testing bias then multiplies the reported case numbers to estimate the *true* case numbers (*=case numbers if testing coverage was as comprehensive as in the heavily tested countries*).
+#     - **Testing bias adjustment**: the actual lagged case fatality rate is then divided by the age adjusted IFR to estimate the testing bias in a country. To account for testing bias changes (e.g. increased testing capacity) this is done on a rolling window basis of two months (with at least 300 deaths). The estimated testing bias then multiplies the reported case numbers for each date to estimate the *true* case numbers (*=case numbers that would be consistent with the deaths and the age adjusted IFR*).
 # - ICU need is calculated and age-adjusted as follows:
 #     - UK ICU ratio was reported as [4.4% of active reported cases](https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf).
 #     - Using UKs ICU ratio, UK's testing bias, and IFRs corrected for age demographics we can estimate each country's ICU ratio (the number of cases requiring ICU hospitalisation).
