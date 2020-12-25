@@ -52,12 +52,14 @@ df_all['monthly_infection_chance'] = 1 - (1 - df_all['daily_infection_chance']) 
 df_all['monthly_deadly_infection_risk'] = (
         df_all['monthly_infection_chance'] * df_all['age_adjusted_ifr'])
 df_all['monthly_average_micromorts'] = df_all['monthly_deadly_infection_risk'] * 1e6
+df_all['monthly_population_risk'] = df_all['monthly_deadly_infection_risk'] * df_all['population']
 
 #hide
 # retrospective empirical risk from recent deaths
 df_all['daily_recent_empirical_risk'] = df_all['Deaths.new.per100k'] / 1e5
 df_all['monthly_recent_empirical_risk'] = 1 - (1 - df_all['daily_recent_empirical_risk']) ** (30 / 5)
 df_all['monthly_recent_empirical_micromorts'] = df_all['monthly_recent_empirical_risk'] * 1e6
+df_all['monthly_population_empirical_risk'] = df_all['monthly_recent_empirical_risk'] * df_all['population']
 
 #hide
 # add age specific data
@@ -180,6 +182,16 @@ fig.update_layout(
                     colorscale='Reds', scale_max=None, percent=True,
                     subtitle="Chance of being infected during a month's exposure",
                     err_series=None, 
+                    hover_text_list=df_geo.apply(stats_hover_text_func, axis=1).tolist()
+                )
+            ] + [
+                geo_helper.button_dict(
+                    df_geo['monthly_population_risk'],
+                    title='<b>Montly total population risk</b>',
+                    colorbar_title='Possible deaths',
+                    colorscale='amp', scale_max=None, percent=False,
+                    subtitle="Total possible deaths due to a month's exposure",
+                    err_series=None,
                     hover_text_list=df_geo.apply(stats_hover_text_func, axis=1).tolist()
                 )
             ] + [
