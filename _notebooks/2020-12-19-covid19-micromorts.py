@@ -42,17 +42,22 @@ df_all.columns.sort_values()
 
 #hide_input
 from IPython.display import Markdown
-Markdown(f"***Based on data up to: {covid_data.cur_date}***")
+Markdown(f"*Based on data up to*: ***{covid_data.cur_date}***")
 
 #hide
 df_all['daily_infection_chance'] = (
     df_all['transmission_rate'] * df_all['current_active_ratio'] /
-    (1 - df_all['current_active_ratio'] - df_all['current_recovered_ratio'])
-)
+    (1 - df_all['current_active_ratio'] - df_all['current_recovered_ratio']))
 df_all['monthly_infection_chance'] = 1 - (1 - df_all['daily_infection_chance']) ** 30
 df_all['monthly_deadly_infection_risk'] = (
         df_all['monthly_infection_chance'] * df_all['age_adjusted_ifr'])
 df_all['monthly_average_micromorts'] = df_all['monthly_deadly_infection_risk'] * 1e6
+
+#hide
+# retrospective empirical risk from recent deaths
+df_all['daily_recent_empirical_risk'] = df_all['Deaths.new.per100k'] / 1e5
+df_all['monthly_recent_empirical_risk'] = 1 - (1 - df_all['daily_recent_empirical_risk']) ** (30 / 5)
+df_all['monthly_recent_empirical_micromorts'] = df_all['monthly_recent_empirical_risk'] * 1e6
 
 #hide
 # add age specific data
@@ -77,7 +82,7 @@ df_geo = geo_helper.make_geo_df(df_all, cases_filter=1000, deaths_filter=20)
 
 # +
 #hide
-def hover_func(r: pd.Series, age_range=None):    
+def micromorts_hover_func(r: pd.Series, age_range=None):    
     if age_range is None:
         ifr, ifr_str = r['age_adjusted_ifr'], "this country's age profile"
         micromorts_col='monthly_average_micromorts'
@@ -106,21 +111,37 @@ def hover_func(r: pd.Series, age_range=None):
         f"  <b>{ifr:.2%}</b>"
     )
 
-def hover_texts_for_age_range(age_range):
-    return df_geo.apply(hover_func, axis=1, age_range=age_range).tolist()
+def micromorts_hover_texts_for_age_range(age_range):
+    return df_geo.apply(micromorts_hover_func, axis=1, age_range=age_range).tolist()
+
+def stats_hover_text_func(r: pd.Series):
+    return (
+        "<br>"
+        f"Cases (reported): {r['Cases.total']:,.0f} (+<b>{r['Cases.new']:,.0f}</b>)<br>"
+        f"Cases (estimated): {r['Cases.total.est']:,.0f} (+<b>{r['Cases.new.est']:,.0f}</b>)<br>"
+        f"Deaths: {r['Deaths.total']:,.0f} (+<b>{r['Deaths.new']:,.0f}</b>)<br><br>"
+        f"Contagious percent of population:"
+        f"  <b>{r['current_active_ratio']:.1%}</b><br>"
+        f"Susceptible percent of population:"
+        f"  <b>{(1 - r['current_active_ratio'] - r['current_recovered_ratio']):.1%}</b><br>"
+        f"Transmission rate: <b>{r['transmission_rate']:.1%}</b><br>"
+        f"Chance of infection over a month:"
+        f"  <b>{r['monthly_infection_chance']:.1%}</b><br>"
+    )
 
 
 # -
 
 #hide
-colorscale = 'RdPu'
 import functools
+default_age = '60-64'
+colorscale = 'RdPu'
 fig = geo_helper.make_map_figure(
     df_geo,
-    col=f'monthly_micromorts_60-64',
+    col=f'monthly_micromorts_{default_age}',
     colorbar_title='Micromorts',
-    subtitle=f"Ages 60-64: risk of deadly infection due to a month's exposure",
-    hover_text_func=functools.partial(hover_func, age_range='60-64'),
+    subtitle=f"Ages {default_age}: risk of deadly infection due to a month's exposure",
+    hover_text_func=functools.partial(micromorts_hover_func, age_range=default_age),
     scale_max=None,
     colorscale=colorscale,
     err_col=None,
@@ -138,7 +159,7 @@ fig.update_layout(
                     colorscale=colorscale, scale_max=None, percent=False,
                     subtitle=f"Ages {age_range}: risk of deadly infection due to a month's exposure",
                     err_series=None,
-                    hover_text_list=hover_texts_for_age_range(age_range)
+                    hover_text_list=micromorts_hover_texts_for_age_range(age_range)
                 ) 
                 for age_range in reversed(list(age_ifrs.keys()))
             ] + [
@@ -149,7 +170,7 @@ fig.update_layout(
                     colorscale=colorscale, scale_max=None, percent=False,
                     subtitle="Risk of deadly infection due to a month's exposure",
                     err_series=None,
-                    hover_text_list=hover_texts_for_age_range(None)
+                    hover_text_list=micromorts_hover_texts_for_age_range(None)
                 ),
             ] + [
                 geo_helper.button_dict(
@@ -159,11 +180,23 @@ fig.update_layout(
                     colorscale='Reds', scale_max=None, percent=True,
                     subtitle="Chance of being infected during a month's exposure",
                     err_series=None, 
-                    hover_text_list=['' for _ in range(len(df_geo))]
+                    hover_text_list=df_geo.apply(stats_hover_text_func, axis=1).tolist()
+                )
+            ] + [
+                geo_helper.button_dict(
+                    (df_geo['monthly_average_micromorts'] /
+                     df_geo['monthly_recent_empirical_micromorts']),
+                    title='<b>Ratio of average monthly risk<br>to recent deaths (as risk)</b>',
+                    colorbar_title='%',
+                    colorscale='Bluered', scale_max=200, percent=True,
+                    subtitle="Ratio of average monthly risk to recent deaths expressed as risk",
+                    err_series=None,
+                    hover_text_list=df_geo.apply(stats_hover_text_func, axis=1).tolist()
                 )
             ],
             direction="down", bgcolor='#dceae1',
-            pad={"t": 10}, active=4,
+            pad={"t": 10},
+            active=list(age_ifrs.keys())[::-1].index(default_age),
             showactive=True, x=0.1, xanchor="left", y=1.1, yanchor="top"),
     ]);
 
