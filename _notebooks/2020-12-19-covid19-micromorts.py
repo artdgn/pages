@@ -55,6 +55,21 @@ df_all['monthly_average_micromorts'] = df_all['monthly_deadly_infection_risk'] *
 df_all['monthly_population_risk'] = df_all['monthly_deadly_infection_risk'] * df_all['population']
 
 #hide
+# errors
+df_all['daily_infection_chance_err'] = (
+    df_all['daily_infection_chance'] * df_all['transmission_rate_std'] / 
+    df_all['transmission_rate'])
+df_all['monthly_infection_chance_err'] = (
+    (1 - df_all['daily_infection_chance'] + df_all['daily_infection_chance_err']) ** 30 - 
+    (1 - df_all['daily_infection_chance'] - df_all['daily_infection_chance_err']) ** 30
+) / 2
+df_all['monthly_average_micromorts_err'] = (
+    df_all['monthly_infection_chance_err'] * df_all['age_adjusted_ifr'] * 1e6)
+df_all['monthly_population_risk_err'] = (
+    df_all['monthly_population_risk'] * df_all['monthly_infection_chance_err'] / 
+    df_all['monthly_infection_chance'])
+
+#hide
 # retrospective empirical risk from recent deaths
 df_all['daily_recent_empirical_risk'] = df_all['Deaths.new.per100k'] / 1e5
 df_all['monthly_recent_empirical_risk'] = 1 - (1 - df_all['daily_recent_empirical_risk']) ** (30 / 5)
@@ -77,6 +92,7 @@ age_ifrs = {
 }
 for age_range, ifr in age_ifrs.items():
     df_all[f'monthly_micromorts_{age_range}'] = 1e6 * ifr * df_all['monthly_infection_chance']
+    df_all[f'monthly_micromorts_{age_range}_err'] = 1e6 * ifr * df_all['monthly_infection_chance_err']
 
 #hide
 geo_helper = covid_helpers.GeoMap
@@ -92,23 +108,24 @@ def micromorts_hover_func(r: pd.Series, age_range=None):
         ifr, ifr_str = age_ifrs[age_range], f'age range {age_range}'
         micromorts_col=f'monthly_micromorts_{age_range}'
     mm = r[micromorts_col]
+    err = r[f'{micromorts_col}_err']
     return (
         f"<br>Risk of death due to one month<br>"
         f"of exposure is comparable to:<br>"
-        f"  - <b>{mm * 10:.0f}</b> km by Motorcycle<br>"
-        f"  - <b>{mm * 370:.0f}</b> km by Car<br>"
-        f"  - <b>{mm * 1600:.0f}</b> km by Plane<br>"  
-        f"  - <b>{mm / 5:.0f}</b> scuba dives<br>"       
-        f"  - <b>{mm / 8:.0f}</b> sky diving jumps<br>"         
-        f"  - <b>{mm / 430:.0f}</b> base jumping jumps<br>"
-        f"  - <b>{mm / 12000:.0f}</b> Everest climbs<br><br>"      
+        f"  - <b>{mm * 10:.0f}</b> ± {err * 10:.0f} km by Motorcycle<br>"
+        f"  - <b>{mm * 370:.0f}</b> ± {err * 370:.0f} km by Car<br>"
+        f"  - <b>{mm * 1600:.0f}</b> ± {err * 1600:.0f} km by Plane<br>"  
+        f"  - <b>{mm / 5:.0f}</b> ± {err / 5:.0f} scuba dives<br>"       
+        f"  - <b>{mm / 8:.0f}</b> ± {err / 8:.0f} sky diving jumps<br>"         
+        f"  - <b>{mm / 430:.0f}</b> ± {err / 430:.0f} base jumping jumps<br>"
+        f"  - <b>{mm / 12000:.0f}</b> ± {err / 12000:.0f} Everest climbs<br><br>"      
         f"Contagious percent of population:"
         f"  <b>{r['current_active_ratio']:.1%}</b><br>"
         f"Susceptible percent of population:"
         f"  <b>{(1 - r['current_active_ratio'] - r['current_recovered_ratio']):.1%}</b><br>"
-        f"Transmission rate: <b>{r['transmission_rate']:.1%}</b><br>"
+        f"Transmission rate: <b>{r['transmission_rate']:.1%}</b> ± {r['transmission_rate_std']:.1%}<br>"
         f"Chance of infection over a month:"
-        f"  <b>{r['monthly_infection_chance']:.1%}</b><br>"
+        f"  <b>{r['monthly_infection_chance']:.1%}</b> ± {r['monthly_infection_chance_err']:.1%}<br>"
         f"Chance of death after infection<br> (for {ifr_str}):"
         f"  <b>{ifr:.2%}</b>"
     )
@@ -126,7 +143,7 @@ def stats_hover_text_func(r: pd.Series):
         f"  <b>{r['current_active_ratio']:.1%}</b><br>"
         f"Susceptible percent of population:"
         f"  <b>{(1 - r['current_active_ratio'] - r['current_recovered_ratio']):.1%}</b><br>"
-        f"Transmission rate: <b>{r['transmission_rate']:.1%}</b><br>"
+        f"Transmission rate: <b>{r['transmission_rate']:.1%}</b> ± {r['transmission_rate_std']:.1%}<br>"
         f"Chance of infection over a month:"
         f"  <b>{r['monthly_infection_chance']:.1%}</b><br>"
     )
@@ -146,7 +163,7 @@ fig = geo_helper.make_map_figure(
     hover_text_func=functools.partial(micromorts_hover_func, age_range=default_age),
     scale_max=None,
     colorscale=colorscale,
-    err_col=None,
+    err_col=f'monthly_micromorts_{default_age}_err',
 )
 
 #hide
@@ -160,7 +177,7 @@ fig.update_layout(
                     colorbar_title='Micromorts',
                     colorscale=colorscale, scale_max=None, percent=False,
                     subtitle=f"Ages {age_range}: risk of deadly infection due to a month's exposure",
-                    err_series=None,
+                    err_series=df_geo[f'monthly_micromorts_{age_range}_err'],
                     hover_text_list=micromorts_hover_texts_for_age_range(age_range)
                 ) 
                 for age_range in reversed(list(age_ifrs.keys()))
@@ -171,7 +188,7 @@ fig.update_layout(
                     colorbar_title='Micromorts',
                     colorscale=colorscale, scale_max=None, percent=False,
                     subtitle="Risk of deadly infection due to a month's exposure",
-                    err_series=None,
+                    err_series=df_geo['monthly_average_micromorts_err'],
                     hover_text_list=micromorts_hover_texts_for_age_range(None)
                 ),
             ] + [
@@ -181,7 +198,7 @@ fig.update_layout(
                     colorbar_title='%',
                     colorscale='Reds', scale_max=None, percent=True,
                     subtitle="Chance of being infected during a month's exposure",
-                    err_series=None, 
+                    err_series=df_geo['monthly_infection_chance_err'], 
                     hover_text_list=df_geo.apply(stats_hover_text_func, axis=1).tolist()
                 )
             ] + [
@@ -191,7 +208,7 @@ fig.update_layout(
                     colorbar_title='Possible deaths',
                     colorscale='amp', scale_max=None, percent=False,
                     subtitle="Total possible deaths due to a month's exposure",
-                    err_series=None,
+                    err_series=df_geo['monthly_population_risk_err'],
                     hover_text_list=df_geo.apply(stats_hover_text_func, axis=1).tolist()
                 )
             ] + [
@@ -242,7 +259,7 @@ fig.show()
 #     - The esposure is assumed to be **average exposure** typical of that country (as it manifests in the recent case and deaths data). Protective measures (e.g. masks) and self isolation should of course reduce the risk (if practiced more than the average for that population at that time).
 #     - Susceptible population is assumed to not yet be **vaccinated**. When vaccination prevalence will become substantial, data will become available, and calculations can be adjusted. The risk estimates are for **regular susceptible** population. People who have been infected already are excluded (as recovered).
 #     - All rates and percentages such as: transmission rate, active and recovered percentages are assumed to be **constant** during the month to keep the monthly calculation simple. This is of course NOT true. However although these rates do change, they usually change slowly enough for the likely result to still be of the same order of magnitude. It is possible to use values from a predictive model for this, but they too have errors (as they too are simplistic). For this analysis I preferred to go with the simple to calculate / understand approximation with a well understood error, than with the complex to calculate / understand approximation with an unknown error.
-#     - All the additional assumptions fom [estimations appendix in main notebook](/pages/covid-progress-projections/#appendix)
+#     - All the additional assumptions from [estimations appendix in main notebook](/pages/covid-progress-projections/#appendix)
 # - Vaccination effect on risk:
 #     - The risk for the **vaccinated** is not calculated here. It is currently widely assumed that the reported [Moderna](https://en.wikipedia.org/wiki/MRNA-1273) and [Pfizer-BioNTech](https://en.wikipedia.org/wiki/Tozinameran) might reduce the **chance of infection** by around **90%**.
 #     - While there are well founded estimates for the effect on **infection chance**, the effect on IFR (fatality rate) is much less known: how does vaccination affect the severity of the desease *if* infected? Answering this will require studying millions of vaccinated people, so will only be available later.

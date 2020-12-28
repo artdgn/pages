@@ -80,3 +80,11 @@ notebooks: .venv
 
 update-server: .venv stop notebooks server
 
+# updates a notebook from a given py script file to a similarly named ipynb file
+# usage: make script-to-notebook SCRIPT='path/to/script.py"
+SCRIPT_BASENAME=$(shell basename -s ".py" "$(SCRIPT)")
+script-to-notebook:
+	cd "$(shell dirname $(SCRIPT))" && \
+	jupytext -o "$(SCRIPT_BASENAME).ipynb" "$(SCRIPT_BASENAME).py" && \
+	papermill --kernel python3 "$(SCRIPT_BASENAME).ipynb" "$(SCRIPT_BASENAME).ipynb"
+
