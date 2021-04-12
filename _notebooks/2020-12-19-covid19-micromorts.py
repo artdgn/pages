@@ -20,7 +20,7 @@
 # - permalink: /micromorts/
 # - image: images/micromorts.png
 # - toc: false
-# - sticky_rank: 0
+# - sticky_rank: 2
 # - hide: false
 
 # > Important: This page contains estimations that were not calculated by an epidemiologist.

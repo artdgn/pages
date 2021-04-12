@@ -22,6 +22,8 @@
 # - image: images/world-infected.png
 # - toc: false
 # - hide: false
+# - sticky_rank: 3
+
 # -
 
 # > Important: This dashboard contains the results of a predictive model that was not built by an epidemiologist.

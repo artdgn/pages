@@ -75,7 +75,7 @@ class OWID:
     url_latest = 'https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/latest/owid-covid-latest.csv'
 
     icu_per_mil_col = 'icu_patients_per_million'
-    vaccination_percent_col = 'total_vaccinations_per_hundred'
+    vaccination_percent_col = 'people_vaccinated_per_hundred'  # people_vaccinated_per_hundred?
 
     @classmethod
     @func_cache

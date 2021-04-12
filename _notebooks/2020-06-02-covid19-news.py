@@ -20,7 +20,7 @@
 # - permalink: /covid-news/
 # - toc: true
 # - image: images/news.png
-# - sticky_rank: 0
+# - sticky_rank: 1
 # - hide: false
 
 # > Note: For per country details projections, and for methodology see [main notebook](/pages/covid-progress-projections/)

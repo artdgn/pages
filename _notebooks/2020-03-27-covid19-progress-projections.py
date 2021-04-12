@@ -20,7 +20,7 @@
 # - permalink: /covid-progress-projections/
 # - image: images/icu-need.png
 # - toc: true
-# - sticky_rank: 1
+# - sticky_rank: 4
 # - hide: false
 
 # > Important: This dashboard contains the results of a predictive model that was not built by an epidemiologist.
