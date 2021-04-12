@@ -75,7 +75,8 @@ class OWID:
     url_latest = 'https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/latest/owid-covid-latest.csv'
 
     icu_per_mil_col = 'icu_patients_per_million'
-    vaccination_percent_col = 'people_vaccinated_per_hundred'  # people_vaccinated_per_hundred?
+    vaccinated_percent_col = 'people_vaccinated_per_hundred'
+    fully_vaccinated_percent_col = 'people_fully_vaccinated_per_hundred'
 
     @classmethod
     @func_cache
@@ -94,15 +95,6 @@ class OWID:
             'Timor': 'Timor-Leste',
         })
         return df.set_index(COL_REGION)
-
-    @classmethod
-    def latest_icu_per_mil(cls):
-        return cls.latest_snapshot()[cls.icu_per_mil_col].dropna()
-
-    @classmethod
-    def latest_vaccination_percent(cls):
-        return cls.latest_snapshot()[cls.vaccination_percent_col].dropna()
-
 
 
 class AgeAdjustedData:
@@ -490,8 +482,10 @@ class CovidData:
         df['icu_capacity_per100k'] = df_beds['icu_per_100k']
 
         # add OWID data
-        df['owid_icu_per_100k'] = OWID.latest_icu_per_mil() / 10
-        df['owid_vaccination_ratio'] = OWID.latest_vaccination_percent() / 100
+        owid_df = OWID.latest_snapshot()
+        df['owid_icu_per_100k'] = owid_df[OWID.icu_per_mil_col].dropna() / 10
+        df['owid_part_vaccinated_ratio'] = owid_df[OWID.vaccinated_percent_col].dropna() / 100
+        df['owid_full_vaccinated_ratio'] = owid_df[OWID.fully_vaccinated_percent_col].dropna() / 100
 
         return df
 
