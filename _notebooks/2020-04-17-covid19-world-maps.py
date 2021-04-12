@@ -123,6 +123,11 @@ fig.update_layout(
                     colorbar_title='%',
                     subtitle='Latest reported percent vaccinated fully or partially (OWID)'),
                 geo_helper.button_dict(
+                    df_geo['owid_total_vaccinations_ratio'], 'Vaccination doses<br>percent',
+                    colorscale='Blues', scale_max=None, percent=True,
+                    colorbar_title='%',
+                    subtitle='Latest reported percent administered vaccine doses per population (OWID)'),
+                geo_helper.button_dict(
                     df_geo['affected_ratio.est'], 'Affected percent<br>(Current)',
                     colorscale='Bluyl', percent=True,
                     colorbar_title='%',

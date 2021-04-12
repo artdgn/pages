@@ -77,6 +77,7 @@ class OWID:
     icu_per_mil_col = 'icu_patients_per_million'
     vaccinated_percent_col = 'people_vaccinated_per_hundred'
     fully_vaccinated_percent_col = 'people_fully_vaccinated_per_hundred'
+    vaccinations_percent_col = 'total_vaccinations_per_hundred'
 
     @classmethod
     @func_cache
@@ -486,6 +487,7 @@ class CovidData:
         df['owid_icu_per_100k'] = owid_df[OWID.icu_per_mil_col].dropna() / 10
         df['owid_part_vaccinated_ratio'] = owid_df[OWID.vaccinated_percent_col].dropna() / 100
         df['owid_full_vaccinated_ratio'] = owid_df[OWID.fully_vaccinated_percent_col].dropna() / 100
+        df['owid_total_vaccinations_ratio'] = owid_df[OWID.vaccinations_percent_col].dropna() / 100
 
         return df
 
