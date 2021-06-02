@@ -64,8 +64,6 @@ geopandas==0.9.0
     # via -r requirements.in
 idna==2.10
     # via requests
-importlib-metadata==3.10.0
-    # via jsonschema
 ipykernel==5.5.3
     # via
     #   ipywidgets
@@ -299,10 +297,8 @@ traitlets==5.0.5
 typed-ast==1.4.3
     # via black
 typing-extensions==3.7.4.3
-    # via
-    #   black
-    #   importlib-metadata
-urllib3==1.26.4
+    # via black
+urllib3==1.26.5
     # via requests
 wcwidth==0.2.5
     # via prompt-toolkit
@@ -310,8 +306,6 @@ webencodings==0.5.1
     # via bleach
 widgetsnbextension==3.5.1
     # via ipywidgets
-zipp==3.4.1
-    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
